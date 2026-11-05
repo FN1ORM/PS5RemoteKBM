@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 
 #include <host.h>
+#include <kbmsecrets.h>
 
 #include <QSettings>
 
@@ -50,14 +51,14 @@ void RegisteredHost::SaveToSettings(QSettings *settings) const
 	settings->setValue("target", (int)target);
 	settings->setValue("ap_ssid", ap_ssid);
 	settings->setValue("ap_bssid", ap_bssid);
-	settings->setValue("ap_key", ap_key);
+	settings->setValue("ap_key", KbmSecrets::protect(ap_key.toUtf8()));
 	settings->setValue("ap_name", ap_name);
 	settings->setValue("server_nickname", server_nickname);
 	settings->setValue("server_mac", QByteArray((const char *)server_mac.GetMAC(), 6));
-	settings->setValue("rp_regist_key", QByteArray(rp_regist_key, sizeof(rp_regist_key)));
+	settings->setValue("rp_regist_key", KbmSecrets::protect(QByteArray(rp_regist_key, sizeof(rp_regist_key))));
 	settings->setValue("rp_key_type", rp_key_type);
-	settings->setValue("rp_key", QByteArray((const char *)rp_key, sizeof(rp_key)));
-	settings->setValue("console_pin", console_pin);
+	settings->setValue("rp_key", KbmSecrets::protect(QByteArray((const char *)rp_key, sizeof(rp_key))));
+	settings->setValue("console_pin", KbmSecrets::protect(console_pin.toUtf8()));
 }
 
 RegisteredHost RegisteredHost::LoadFromSettings(QSettings *settings)
@@ -66,20 +67,20 @@ RegisteredHost RegisteredHost::LoadFromSettings(QSettings *settings)
 	r.target = (ChiakiTarget)settings->value("target").toInt();
 	r.ap_ssid = settings->value("ap_ssid").toString();
 	r.ap_bssid = settings->value("ap_bssid").toString();
-	r.ap_key = settings->value("ap_key").toString();
+	r.ap_key = QString::fromUtf8(KbmSecrets::unprotect(settings->value("ap_key").toByteArray()));
 	r.ap_name = settings->value("ap_name").toString();
 	r.server_nickname = settings->value("server_nickname").toString();
 	auto server_mac = settings->value("server_mac").toByteArray();
 	if(server_mac.size() == 6)
 		r.server_mac = HostMAC((const uint8_t *)server_mac.constData());
-	auto rp_regist_key = settings->value("rp_regist_key").toByteArray();
+	auto rp_regist_key = KbmSecrets::unprotect(settings->value("rp_regist_key").toByteArray());
 	if(rp_regist_key.size() == sizeof(r.rp_regist_key))
 		memcpy(r.rp_regist_key, rp_regist_key.constData(), sizeof(r.rp_regist_key));
 	r.rp_key_type = settings->value("rp_key_type").toUInt();
-	auto rp_key = settings->value("rp_key").toByteArray();
+	auto rp_key = KbmSecrets::unprotect(settings->value("rp_key").toByteArray());
 	if(rp_key.size() == sizeof(r.rp_key))
 		memcpy(r.rp_key, rp_key.constData(), sizeof(r.rp_key));
-	r.console_pin = settings->value("console_pin").toString();
+	r.console_pin = QString::fromUtf8(KbmSecrets::unprotect(settings->value("console_pin").toByteArray()));
 	return r;
 }
 

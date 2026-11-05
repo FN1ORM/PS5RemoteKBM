@@ -9,6 +9,33 @@ Item {
     id: root
     property list<Item> restoreFocusItems
     property bool initialAsk: false
+    Button {
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.margins: 8
+        z: 100
+        visible: !Chiaki.session
+        text: qsTr("Keyboard & mouse (F2)")
+        onClicked: Chiaki.window.showNativeControls()
+    }
+    Label {
+        id: nativeInputLabel
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.margins: 8
+        z: 100
+        visible: Chiaki.session && Chiaki.window.hasVideo
+        color: "white"
+        padding: 6
+        background: Rectangle { color: "#aa101820"; radius: 4 }
+        text: "F1 captures mouse • F2 controls"
+        Timer {
+            interval: 100
+            running: nativeInputLabel.visible
+            repeat: true
+            onTriggered: nativeInputLabel.text = Chiaki.window.nativeInputStatus()
+        }
+    }
     readonly property bool preferSeparateStreamSettingsWindows: Chiaki.window.runtimeRendererBackend === 1 && Chiaki.session
     property bool useSeparateStreamSettingsWindows: false
     Material.theme: Material.Dark
@@ -551,7 +578,7 @@ Item {
             else
             {
                 if(ps5)
-                    root.showConfirmDialog(qsTr("Registration Type"), qsTr("Would you like to use automatic registration?"), () => root.autoRegister(true, host, ps5), () => root.autoRegister(false, host, ps5))
+                    root.showConfirmDialog(qsTr("Registration Type"), qsTr("Try PSN automatic registration? This can be attempted across networks. If it fails, use manual IP + PIN through the VPN subnet route. Console authorization and network support are required."), () => root.autoRegister(true, host, ps5), () => root.autoRegister(false, host, ps5))
                 else
                     root.showConfirmDialog(qsTr("Registration Type"), qsTr("Would you like to use automatic registration (must be main PS4 console registered to your PSN)?"), () => root.autoRegister(true, host, ps5), () => root.autoRegister(false, host, ps5))
             }

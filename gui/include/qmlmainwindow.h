@@ -52,6 +52,7 @@ class StatsOverlayWidget;
 class BufferedPlaybackPacerThread;
 class DeferredPresentPacerThread;
 class DeferredSwapThread;
+class KbmInput;
 
 class QmlMainWindow : public QWindow
 {
@@ -69,6 +70,8 @@ class QmlMainWindow : public QWindow
     Q_PROPERTY(double pendingFrameAge READ pendingFrameAge NOTIFY pendingFrameAgeChanged)
 
 public:
+    Q_INVOKABLE void showNativeControls();
+    Q_INVOKABLE QString nativeInputStatus() const;
     enum class UpdateRequestReason {
         Unknown,
         SceneChanged,
@@ -313,6 +316,7 @@ private:
     QAtomicInteger<int> overlay_interaction_active = 0;
     bool keep_video = false;
     RenderBackend render_backend = RenderBackend::Vulkan;
+    KbmInput *native_input = nullptr;
     int grab_input = 0;
     int dropped_frames = 0;
     bool is_window_adjustable = false;

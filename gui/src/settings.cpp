@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 
 #include <settings.h>
+#include <kbmsecrets.h>
 #include <SDL.h>
 #include <QFile>
 #include <QFileInfo>
 #include <QUrl>
 #include <QKeySequence>
 #include <QCoreApplication>
+#include <QMessageBox>
 
 #include <chiaki/config.h>
 
@@ -347,6 +349,20 @@ QMap<QString, QString> Settings::GetPlaceboValues()
 void Settings::ImportSettings(QString filepath)
 {
 	QSettings settings_backup(filepath, QSettings::IniFormat);
+#ifdef Q_OS_WIN
+	// Never copy legacy plaintext credentials into the fork's settings store.
+	for(const QString &key : settings_backup.allKeys()) {
+		const QString leaf = key.section('/', -1);
+		if(leaf == "psn_auth_token" || leaf == "psn_refresh_token" || leaf == "rp_key"
+			|| leaf == "rp_regist_key" || leaf == "ap_key" || leaf == "console_pin") {
+			if(!settings_backup.value(key).toByteArray().isEmpty()
+				&& !settings_backup.value(key).toByteArray().startsWith("DPAPI1:")) {
+				QMessageBox::warning(nullptr, "Credentials cannot be imported", "This file contains unprotected credentials. Import a settings backup made by PS5 Remote KBM, or configure the client and sign in again.");
+				return;
+			}
+		}
+	}
+#endif
 	LoadRegisteredHosts(&settings_backup);
 	LoadHiddenHosts(&settings_backup);
 	LoadManualHosts(&settings_backup);
@@ -455,7 +471,7 @@ static const QMap<ChiakiVideoResolutionPreset, QString> resolutions = {
 };
 
 static const ChiakiVideoResolutionPreset resolution_default_ps4 = CHIAKI_VIDEO_RESOLUTION_PRESET_720p;
-static const ChiakiVideoResolutionPreset resolution_default_ps5_local = CHIAKI_VIDEO_RESOLUTION_PRESET_1080p;
+static const ChiakiVideoResolutionPreset resolution_default_ps5_local = CHIAKI_VIDEO_RESOLUTION_PRESET_720p;
 static const ChiakiVideoResolutionPreset resolution_default_ps5_remote = CHIAKI_VIDEO_RESOLUTION_PRESET_720p;
 
 ChiakiVideoResolutionPreset Settings::GetResolutionLocalPS4() const
@@ -599,7 +615,7 @@ static const QMap<ChiakiCodec, QString> codecs = {
 	{ CHIAKI_CODEC_H265_HDR, "h265_hdr" }
 };
 
-static const ChiakiCodec codec_default_ps5 = CHIAKI_CODEC_H265;
+static const ChiakiCodec codec_default_ps5 = CHIAKI_CODEC_H264;
 static const ChiakiCodec codec_default_ps4 = CHIAKI_CODEC_H264;
 
 static ChiakiCodec clampCodecForBackend(RenderBackend backend, ChiakiCodec codec)
@@ -933,22 +949,26 @@ void Settings::SetEchoSuppressLevel(int reduceby)
 
 QString Settings::GetPsnAuthToken() const
 {
-	return settings.value("settings/psn_auth_token").toString();
+	return QString::fromUtf8(KbmSecrets::unprotect(settings.value("settings/psn_auth_token").toByteArray()));
 }
 
 void Settings::SetPsnAuthToken(QString auth_token)
 {
-	settings.setValue("settings/psn_auth_token", auth_token);
+	if(auth_token.isEmpty()) settings.remove("settings/psn_auth_token");
+	else settings.setValue("settings/psn_auth_token", KbmSecrets::protect(auth_token.toUtf8()));
+	settings.sync();
 }
 
 QString Settings::GetPsnRefreshToken() const
 {
-	return settings.value("settings/psn_refresh_token").toString();
+	return QString::fromUtf8(KbmSecrets::unprotect(settings.value("settings/psn_refresh_token").toByteArray()));
 }
 
 void Settings::SetPsnRefreshToken(QString refresh_token)
 {
-	settings.setValue("settings/psn_refresh_token", refresh_token);
+	if(refresh_token.isEmpty()) settings.remove("settings/psn_refresh_token");
+	else settings.setValue("settings/psn_refresh_token", KbmSecrets::protect(refresh_token.toUtf8()));
+	settings.sync();
 }
 
 QString Settings::GetPsnAuthTokenExpiry() const
@@ -2167,6 +2187,11 @@ void Settings::LoadRegisteredHosts(QSettings *qsettings)
 	{
 		qsettings->setArrayIndex(i);
 		RegisteredHost host = RegisteredHost::LoadFromSettings(qsettings);
+		if(host.GetRPKey() == QByteArray(host.GetRPKey().size(), '\0')
+			|| host.GetRPRegistKey() == QByteArray(host.GetRPRegistKey().size(), '\0')) {
+			qWarning("Stored console credentials unavailable; console must be registered again");
+			continue;
+		}
 		registered_hosts[host.GetServerMAC()] = host;
 		nickname_registered_hosts[host.GetServerNickname()] = host;
 		if(!chiaki_target_is_ps5(host.GetTarget()))

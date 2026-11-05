@@ -43,7 +43,7 @@ private:
     QString basicAuthHeader;
     Settings *settings = {};
 
-    static QByteArray to_bytes_little_endian(long long number, int num_bytes) {
+    static QByteArray to_bytes_little_endian(quint64 number, int num_bytes) {
         QByteArray byte_array;
         int n = 1;
         if(*(char *)&n == 1) // little endian

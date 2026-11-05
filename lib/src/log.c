@@ -113,6 +113,11 @@ static const char hex_char[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9
 
 CHIAKI_EXPORT void chiaki_log_hexdump(ChiakiLog *log, ChiakiLogLevel level, const uint8_t *buf, size_t buf_size)
 {
+	// Protocol payloads may contain console keys, session IDs or typed text.
+	// This personal fork keeps sizes/errors, never raw packet bytes in logs.
+	(void)buf;
+	chiaki_log(log, level, "[binary payload redacted: %zu bytes]", buf_size);
+	return;
 	if(log && !(log->level_mask & level))
 		return;
 

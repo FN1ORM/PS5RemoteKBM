@@ -20,6 +20,10 @@ if(WIN32)
 endif()
 
 set(SOURCE_FILES
+	include/kbminput.h
+	include/kbmengine.h
+	include/kbmsecrets.h
+	src/kbminput.cpp
 	include/exception.h
 	src/main.cpp
 	include/discoverymanager.h
@@ -93,6 +97,10 @@ add_executable(chiaki WIN32
 		${SOURCE_FILES}
 )
 target_include_directories(chiaki PRIVATE include)
+if(WIN32)
+	set_target_properties(chiaki PROPERTIES OUTPUT_NAME PS5RemoteKBM)
+	target_link_libraries(chiaki crypt32 user32)
+endif()
 
 add_library(placebo-libav-impl src/libav_impl.c)
 target_link_libraries(placebo-libav-impl PkgConfig::LIBPLACEBO FFMPEG::avcodec FFMPEG::avutil FFMPEG::avformat)

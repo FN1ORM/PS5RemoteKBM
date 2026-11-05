@@ -1,4 +1,5 @@
 #include "qmlmainwindow.h"
+#include "kbminput.h"
 #include "qmlbackend.h"
 #include "qmlsvgprovider.h"
 #include "chiaki/log.h"
@@ -2555,6 +2556,8 @@ QmlMainWindow::QmlMainWindow(const StreamSessionConnectInfo &connect_info)
 
 QmlMainWindow::~QmlMainWindow()
 {
+    delete native_input;
+    native_input = nullptr;
     Q_ASSERT(!placebo_swapchain);
 
     // A normal exit isn't a crash, whether or not Vulkan showed a frame or the queued clear ran
@@ -2756,6 +2759,7 @@ void QmlMainWindow::setKeepVideo(bool keep)
 
 void QmlMainWindow::grabInput()
 {
+    if(native_input) native_input->release();
     setCursor(Qt::ArrowCursor);
     grab_input++;
     if (session)
@@ -5156,11 +5160,13 @@ renderer_backend_ready:
         qml_engine->setIncubationController(quick_window->incubationController());
     connect(qml_engine, &QQmlEngine::quit, this, &QWindow::close);
 
+    native_input = new KbmInput(this);
     backend = new QmlBackend(settings, this);
     stats_overlay_widget = new StatsOverlayWidget(this, backend);
     connect(backend, &QmlBackend::sessionChanged, this, [this, exit_app_on_stream_exit](StreamSession *s) {
         const bool preserve_startup_warmup = s && startup_warmup_preserve_next_session_change;
         startup_warmup_preserve_next_session_change = false;
+        native_input->setSession(s);
         session = s;
         stream_session_active.storeRelease(s ? 1 : 0);
         startup_video_visible_generation.fetchAndAddRelaxed(1);
@@ -7710,12 +7716,14 @@ bool QmlMainWindow::event(QEvent *event)
         if (static_cast<QMouseEvent*>(event)->source() != Qt::MouseEventNotSynthesized)
             return true;
         if (session && !grab_input) {
+#ifndef Q_OS_WIN
             if (event->type() == QEvent::MouseMove)
                 session->HandleMouseMoveEvent(static_cast<QMouseEvent*>(event), width(), height());
             else if (event->type() == QEvent::MouseButtonPress)
                 session->HandleMousePressEvent(static_cast<QMouseEvent*>(event));
             else if (event->type() == QEvent::MouseButtonRelease)
                 session->HandleMouseReleaseEvent(static_cast<QMouseEvent*>(event));
+#endif
             return true;
         }
         QGuiApplication::sendEvent(quick_window, event);
@@ -7741,7 +7749,11 @@ bool QmlMainWindow::event(QEvent *event)
                 return true;
             }
             if (e->timestamp())
+#ifndef Q_OS_WIN
                 session->HandleKeyboardEvent(e);
+#else
+                (void)e; // Native KBM owns stream input; F1 explicitly arms it.
+#endif
             return true;
         }
         QGuiApplication::sendEvent(quick_window, event);
@@ -7808,3 +7820,6 @@ QObject *QmlMainWindow::focusObject() const
 {
     return quick_window->focusObject();
 }
+
+void QmlMainWindow::showNativeControls() { if(native_input) native_input->showControls(); }
+QString QmlMainWindow::nativeInputStatus() const { return native_input ? native_input->statusText() : QString(); }

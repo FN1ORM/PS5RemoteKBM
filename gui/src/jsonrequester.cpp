@@ -55,7 +55,9 @@ void JsonRequester::makeRequest(bool post, const QString& url, const QString& au
     });
     timeoutTimer->start(kRequestTimeoutMs);
 
-    currentReplies.insert(reply, url);
+    // The account-info endpoint embeds the access token in its URL path.
+    // Signals and network errors must never expose that URL to UI/log handlers.
+    currentReplies.insert(reply, q_url.scheme() + "://" + q_url.host() + "/[endpoint redacted]");
 }
 
 void JsonRequester::onRequestFinished(QNetworkReply* reply) {
@@ -69,7 +71,9 @@ void JsonRequester::onRequestFinished(QNetworkReply* reply) {
         emit requestFinished(url, jsonDocument);
     } else {
         const bool timedOut = reply->property("timed_out").toBool();
-        const QString errorString = timedOut ? QStringLiteral("Request timed out") : reply->errorString();
+        const QString errorString = timedOut ? QStringLiteral("Request timed out")
+            : QString("Network request failed (Qt error %1, HTTP status %2)")
+                .arg(int(reply->error())).arg(reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt());
         emit requestError(url, errorString, reply->error());
     }
 

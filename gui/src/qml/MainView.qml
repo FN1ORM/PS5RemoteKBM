@@ -18,7 +18,7 @@ Pane {
             else if(Chiaki.settings.remotePlayAsk)
             {
                 if(!Chiaki.settings.psnRefreshToken || !Chiaki.settings.psnAuthToken || !Chiaki.settings.psnAuthTokenExpiry || !Chiaki.settings.psnAccountId)
-                    root.showRemindDialog(qsTr("Remote Play via PSN"), qsTr("Would you like to connect to PSN?\nThis enables:\n- Automatic registration\n- Playing outside of your home network without port forwarding?") + "\n\n" + qsTr("(Note: If you select no now and want to do this later, go to the Config section of the settings.)"), true, () => root.showPSNTokenDialog(false));
+                    root.showRemindDialog(qsTr("Remote Play via PSN"), qsTr("Would you like to sign in to PSN?\nThis allows attempts at:\n- Authorized automatic console registration\n- Remote play across networks\nConsole authorization and compatible NAT/network access are required.") + "\n\n" + qsTr("You can sign in later from the Config section of Settings. If PSN cannot connect, use manual IP registration through a routed VPN."), true, () => root.showPSNTokenDialog(false));
                 else
                     Chiaki.settings.remotePlayAsk = false;
             }
@@ -268,7 +268,7 @@ Pane {
                             t += "\n" + qsTr("ID: %1 (%2)").arg(Chiaki.settings.streamerMode ? "hidden" : modelData.mac).arg(modelData.registered ? qsTr("registered") : qsTr("unregistered"));
                         if (modelData.duid)
                         {
-                            if(modelData.discovered)
+                            if(!modelData.registered)
                                 t += "\n" + qsTr("Automatic Registration Available");
                             else
                                 t += "\n" + qsTr("Remote Connection via PSN");

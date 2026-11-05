@@ -41,7 +41,14 @@ void PSNAccountID::handleAccessTokenResponse(const QString& url, const QJsonDocu
 void PSNAccountID::handUserIDResponse(const QString& url, const QJsonDocument& jsonDocument) {
     QJsonObject object = jsonDocument.object();
     QString user_id = object.value("user_id").toString();
-    QByteArray byte_representation = to_bytes_little_endian(std::stoll(user_id.toStdString()), 8);
+    bool valid = false;
+    auto numeric_id = user_id.toULongLong(&valid);
+    if(!valid) {
+        emit AccountIDError("PSN account lookup", "PSN returned an invalid account ID. Please sign in again.");
+        emit Finished();
+        return;
+    }
+    QByteArray byte_representation = to_bytes_little_endian(numeric_id, 8);
     settings->SetPsnAccountId(byte_representation.toBase64());
     emit AccountIDResponse(byte_representation.toBase64());
     emit Finished();
