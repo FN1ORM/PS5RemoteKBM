@@ -1,3 +1,4 @@
+<!-- Personal client release: 2026.11 -->
 # PS5 Remote KBM 0.1.0 — Windows x64
 
 A native keyboard/mouse fork of chiaki-ng, independent of Sony's Windows client.
@@ -10,6 +11,19 @@ Real PSN sign-in, console authorization, registration, video/audio streaming,
 in-game controls, Rest Mode wake and interruption recovery need the owner's tests.
 Remote-first automatic registration is exposed as an experimental attempt, not a
 claim of Sony-client equivalence or guaranteed NAT compatibility.
+
+## Full manual and November update
+
+Open the [complete user manual](docs/kbm/user-manual.html) offline, or press **F3**
+in the app. Its 22 sections cover the Android subnet router, everyday connections,
+PSN after registration, all connection methods, home-page labels, quality, aiming,
+Rest Mode, local monitor behavior and recovery.
+
+**F4** opens read-only Tailscale peer diagnostics and presets for both PS5 video
+profiles. **F2** now offers an optional Precise mouse preset; old input profiles
+keep their existing behavior. Popups wrap, scroll and follow the window size.
+See [release notes](docs/kbm/release-2026-11-07.md) for tests and limitations.
+
 
 ## Install and run
 
@@ -32,9 +46,9 @@ the video renderer, launch `PS5RemoteKBM.exe --input-test`.
    Registration Available**. Click it to attempt authorized PSN registration.
    Console Remote Play must be enabled and the network/account must permit it.
 3. If that fails, use [the routed VPN guide](docs/kbm/vpn-registration.md), then
-   **Settings → Consoles → Register New**, PS5 LAN IP, broadcast disabled,
-   and the console's current eight-digit Link Device PIN. The remote PC must be
-   configured as a subnet gateway; simply installing a VPN on two PCs is insufficient.
+   **Settings → Consoles → Register New**, PS5 LAN IP (unicast registration),
+   and the console's current eight-digit Link Device PIN. The Android phone or another gateway must advertise the PS5 subnet route.
+   Simply connecting two devices to Tailscale does not route the PS5 LAN.
 4. After registration connect via the PSN entry. Retain manual IP/VPN as an alternate
    path. With live video showing, press **F1** to arm keyboard/mouse control.
 
@@ -61,7 +75,7 @@ sensitivity and local test panel; it also has a button on the home screen.
 
 The mapping panel supports individual keys (including modifiers) and five mouse
 buttons; click a key button then press the new key. Use Clear for unbound actions.
-Esc/F1/F2 are reserved. Qt treats left/right Shift and Ctrl as the same binding.
+Esc/F1/F2/F3/F4 are reserved. Qt treats left/right Shift and Ctrl as the same binding.
 Settings save immediately. Save As creates independent named input profiles.
 The panel's Test capture mode shows live sticks/buttons/triggers without sending
 console reports. Esc releases the test capture. Input profiles are separate from

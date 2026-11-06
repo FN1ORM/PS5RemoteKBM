@@ -7,6 +7,7 @@ import org.streetpea.chiaking
 
 Pane {
     padding: 0
+    background: Rectangle { color: "#0c1320" }
     id: consolePane
     StackView.onActivated: {
         forceActiveFocus(Qt.TabFocusReason);
@@ -70,109 +71,17 @@ Pane {
 
     ToolBar {
         id: toolBar
-        anchors {
-            top: parent.top
-            left: parent.left
-            right: parent.right
-        }
-        height: 80
-
+        anchors { top: parent.top; left: parent.left; right: parent.right }
+        height: 64
         RowLayout {
-            anchors {
-                fill: parent
-                leftMargin: 10
-                rightMargin: 10
-            }
-
-            Button {
-                Layout.fillHeight: true
-                Layout.preferredWidth: 100
-                flat: true
-                text: "×"
-                font.pixelSize: 60
-                focusPolicy: Qt.NoFocus
-                onClicked: Qt.quit()
-                Material.roundedScale: Material.SmallScale
-            }
-
+            anchors { fill: parent; margins: 8 }
+            spacing: 8
+            Label { text: "PS5 Remote KBM"; font.bold: true; font.pixelSize: 18; visible: consolePane.width > 650 }
             Item { Layout.fillWidth: true }
-
-            Button {
-                Layout.fillHeight: true
-                Layout.preferredWidth: 350
-                flat: true
-                text: "Create Steam Shortcut"
-                focusPolicy: Qt.NoFocus
-                onClicked: root.showSteamShortcutDialog(false)
-                Material.roundedScale: Material.SmallScale
-                visible: typeof Chiaki.createSteamShortcut === "function"
-                Image {
-                    anchors {
-                        right: parent.right
-                        verticalCenter: parent.verticalCenter
-                        leftMargin: 12
-                    }
-                    width: 28
-                    height: 28
-                    sourceSize: Qt.size(width, height)
-                    source: "qrc:/icons/l3.svg"
-                }
-            }
-
-            Button {
-                Layout.fillHeight: true
-                Layout.preferredWidth: 400
-                flat: true
-                text: "Refresh PSN Hosts"
-                icon.source: "qrc:/icons/r1.svg"
-                focusPolicy: Qt.NoFocus
-                onClicked: Chiaki.refreshPsnToken();
-                Material.roundedScale: Material.SmallScale
-                visible: Chiaki.settings.psnAuthToken
-            }
-
-            Button {
-                Layout.fillHeight: true
-                Layout.preferredWidth: 400
-                flat: true
-                focusPolicy: Qt.NoFocus
-                Material.roundedScale: Material.SmallScale
-                visible: !Chiaki.settings.psnAuthToken
-            }
-
-            Button {
-                Layout.fillHeight: true
-                Layout.preferredWidth: 300
-                flat: true
-                text: "Add Manual Host"
-                focusPolicy: Qt.NoFocus
-                onClicked: root.showManualHostDialog()
-                Material.roundedScale: Material.SmallScale
-                Image {
-                    anchors {
-                        left: parent.left
-                        verticalCenter: parent.verticalCenter
-                        leftMargin: 12
-                    }
-                    width: 28
-                    height: 28
-                    sourceSize: Qt.size(width, height)
-                    source: "qrc:/icons/r3.svg"
-                }
-            }
-
-            Button {
-                id: settingsButton
-                Layout.fillHeight: true
-                Layout.preferredWidth: 100
-                flat: true
-                icon.source: "qrc:/icons/settings-20px.svg";
-                icon.width: 50
-                icon.height: 50
-                focusPolicy: Qt.NoFocus
-                onClicked: root.showSettingsDialog()
-                Material.roundedScale: Material.SmallScale
-            }
+            Button { text: qsTr("Refresh PSN"); visible: !!Chiaki.settings.psnAuthToken; font.pixelSize: 14; onClicked: Chiaki.refreshPsnToken() }
+            Button { text: qsTr("Add console"); font.pixelSize: 14; onClicked: root.showManualHostDialog() }
+            Button { id: settingsButton; text: qsTr("Settings"); font.pixelSize: 14; onClicked: root.showSettingsDialog() }
+            Button { text: qsTr("Quit"); font.pixelSize: 14; onClicked: Qt.quit() }
         }
     }
 
@@ -187,6 +96,7 @@ Pane {
             bottomMargin: 50
         }
         clip: true
+        spacing: 10
         model: Chiaki.hosts
         onCountChanged: {
             if(!hostsView.currentItem)
@@ -208,8 +118,14 @@ Pane {
         delegate: ItemDelegate {
             visible: modelData.display
             id: delegate
-            width: parent ? parent.width : 0
-            height: modelData.display ? 180 : 0
+            x: 12
+            width: parent ? Math.max(0, parent.width - 24) : 0
+            background: Rectangle {
+                radius: 12
+                color: delegate.highlighted ? "#142d46" : "#101e30"
+                border.color: delegate.highlighted ? "#38b6ff" : "#243b53"
+            }
+            height: modelData.display ? 170 : 0
             highlighted: ListView.isCurrentItem
             onClicked: connectToHost()
 
@@ -246,11 +162,11 @@ Pane {
                     topMargin: 10
                     bottomMargin: 10
                 }
-                spacing: 50
+                spacing: 16
 
                 Image {
                     Layout.fillHeight: true
-                    Layout.preferredWidth: 150
+                    Layout.preferredWidth: consolePane.width < 800 ? 64 : 100
                     fillMode: Image.PreserveAspectFit
                     source: "image://svg/console-ps" + (modelData.ps5 ? "5" : "4") + (modelData.state == "standby" ? "#light_standby" : "#light_on")
                     sourceSize: Qt.size(width, height)
@@ -258,6 +174,11 @@ Pane {
 
                 Label {
                     Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+                    Layout.fillWidth: true
+                    Layout.preferredWidth: 240
+                    wrapMode: Text.Wrap
+                    font.pixelSize: 15
+                    textFormat: Text.PlainText
                     text: {
                         let t = "";
                         if (modelData.name)
@@ -279,12 +200,12 @@ Pane {
                             if(modelData.discovered)
                             {
                                 if(modelData.manual)
-                                    t += qsTr("discovered + manual")
+                                    t += qsTr("Discovered + saved IP")
                                 else
-                                    t += qsTr("discovered");
+                                    t += qsTr("Discovered on network");
                             }
                             else
-                                t += qsTr("manual");
+                                t += qsTr("Saved IP / VPN route");
                         }
                         return t;
                     }
@@ -292,6 +213,12 @@ Pane {
 
                 Label {
                     Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+                    Layout.fillWidth: true
+                    Layout.preferredWidth: 240
+                    wrapMode: Text.Wrap
+                    font.pixelSize: 15
+                    textFormat: Text.PlainText
+                    visible: consolePane.width >= 900
                     text: {
                         let t = "";
                         if(modelData.duid)
@@ -307,8 +234,6 @@ Pane {
                     }
                 }
 
-                Item { Layout.fillWidth: true }
-
                 ColumnLayout {
                     Layout.fillHeight: true
                     spacing: 0
@@ -317,7 +242,7 @@ Pane {
                         Layout.alignment: Qt.AlignCenter
                         text: modelData.manual ? qsTr("Delete") : qsTr("Hide")
                         flat: true
-                        padding: 20
+                        padding: 8
                         leftPadding: delegate.highlighted ? 50 : undefined
                         focusPolicy: Qt.NoFocus
                         visible: modelData.manual || (modelData.discovered && !modelData.registered)
@@ -342,7 +267,7 @@ Pane {
                         Layout.alignment: Qt.AlignCenter
                         text: qsTr("Wake Up")
                         flat: true
-                        padding: 20
+                        padding: 8
                         leftPadding: delegate.highlighted ? 50 : undefined
                         visible: modelData.registered && !modelData.duid && !modelData.discovered
                         focusPolicy: Qt.NoFocus
@@ -365,9 +290,9 @@ Pane {
 
                     Button {
                         Layout.alignment: Qt.AlignCenter
-                        text: qsTr("Update Console Pin")
+                        text: qsTr("Login PIN")
                         flat: true
-                        padding: 20
+                        padding: 8
                         leftPadding: delegate.highlighted ? 50 : undefined
                         visible: modelData.registered
                         focusPolicy: Qt.NoFocus
@@ -401,7 +326,7 @@ Pane {
         icon.source: "qrc:/icons/discover-" + (checked ? "" : "off-") + "24px.svg"
         icon.width: 50
         icon.height: 50
-        padding: 20
+        padding: 8
         focusPolicy: Qt.NoFocus
         checkable: true
         checked: Chiaki.discoveryEnabled
@@ -415,23 +340,19 @@ Pane {
             bottom: parent.bottom
             margins: 20
         }
-        text: Qt.application.version
+        text: "KBM 2026.11 · chiaki-ng " + Qt.application.version
+        font.pixelSize: 12
+        color: "#a9bdd4"
     }
 
-    Image {
-        id: logoImage
+    Label {
         anchors.centerIn: parent
-        source: "qrc:/icons/chiaking-logo-white.svg"
-        sourceSize: Qt.size(Math.min(parent.width, parent.height) / 2, Math.min(parent.width, parent.height) / 2)
-
-        PropertyAnimation {
-            target: logoImage
-            property: "opacity"
-            from: 0.05
-            to: 0.20
-            duration: 1000
-            easing.type: Easing.OutCubic
-            running: true
-        }
+        width: Math.max(0, parent.width - 48)
+        horizontalAlignment: Text.AlignHCenter
+        wrapMode: Text.Wrap
+        font.pixelSize: 20
+        color: "#a9bdd4"
+        visible: hostsView.count === 0
+        text: qsTr("Your PS5, on your laptop.\nAdd a console or refresh PSN to get started.\nF3 opens the complete setup guide.")
     }
 }

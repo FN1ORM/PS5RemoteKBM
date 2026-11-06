@@ -106,7 +106,7 @@ DialogView {
         }
 
         Item {
-            Dialog {
+            BoundedDialog {
                 id: logDialog
                 parent: Overlay.overlay
                 x: Math.round((root.width - width) / 2)
@@ -159,7 +159,7 @@ DialogView {
             }
         }
 
-        Dialog {
+        BoundedDialog {
             id: restartDialog
             parent: Overlay.overlay
             x: Math.round((root.width - width) / 2)

@@ -276,7 +276,7 @@ DialogView {
             }
         }
 
-        Dialog {
+        BoundedDialog {
             id: buttonDialog
             property int buttonValue
             property int buttonIndex

@@ -15,6 +15,7 @@ int main(int argc, char *argv[]) { return real_main(argc, argv); }
 
 #include <streamsession.h>
 #include <kbminput.h>
+#include <kbmconnection.h>
 #include <settings.h>
 #include <host.h>
 #include <controllermanager.h>
@@ -198,6 +199,8 @@ int real_main(int argc, char *argv[])
 
 	QCommandLineOption input_test_option("input-test", "Open local native keyboard/mouse controls without initializing the video renderer.");
 	parser.addOption(input_test_option);
+	QCommandLineOption connection_tools_option("connection-tools", "Open connection diagnostics and quality presets without initializing the video renderer.");
+	parser.addOption(connection_tools_option);
 	parser.process(app);
 	if(parser.isSet(input_test_option)) { QWindow host; KbmInput input(&host); return input.runLocalTest(); }
 	QStringList args = parser.positionalArguments();
@@ -220,6 +223,8 @@ int real_main(int argc, char *argv[])
 		active_settings->SetVulkanStartupPending(false);
 		active_settings->Sync();
 	}
+
+	if(parser.isSet(connection_tools_option)) { QWindow host; showKbmConnectionTools(&host, use_alt_settings ? &alt_settings : &settings); return app.exec(); }
 
 	if(args.length() == 0)
 		return RunMain(app, use_alt_settings ? &alt_settings : &settings, exit_app_on_stream_exit);

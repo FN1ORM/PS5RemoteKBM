@@ -1,5 +1,9 @@
 # Register across cities with a routed VPN
 
+For your working **Android phone** gateway and everyday play, start with the
+[full manual](user-manual.html), sections 9–11. The Windows/macOS alternatives
+below are retained for people replacing the phone with another gateway.
+
 The topology is **laptop → Tailscale → remote Windows PC → PS5 LAN IP**.
 Installing Tailscale on the two PCs alone is insufficient. The PS5 cannot install
 Tailscale; the remote PC must route traffic, stay awake and remain on the PS5's LAN.
@@ -78,8 +82,10 @@ that an overlapping route is reaching the intended console.
 
 In the app sign into PSN through your browser so the Account ID is populated.
 Use **Settings → Consoles → Register New**, choose PS5 and enter the **PS5 LAN IP**,
-not the remote PC's VPN IP. Disable broadcast search. Ask the person at the console
-to open **Settings → System → Remote Play → Link Device** and type the current
+not the remote PC's VPN IP. In this build there is no separate broadcast checkbox:
+entering the real PS5 IP instead of `255.255.255.255` automatically selects unicast
+registration. Ask the person at the console
+to open **Settings → System → Remote Play → Pair Device / Link Device** and type the current
 eight-digit PIN directly into the app. Do not put the PIN, redirect URL, account
 tokens or configuration export in chat. Repeat with a fresh PIN if it expires.
 

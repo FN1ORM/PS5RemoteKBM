@@ -17,35 +17,46 @@ DialogView {
     }
 
     Item {
+        ScrollView {
+            id: formScroll
+            contentHeight: formGrid.implicitHeight + 40
+            anchors.fill: parent
+            clip: true
+            contentWidth: availableWidth
         GridLayout {
+            id: formGrid
+            height: implicitHeight
+            width: Math.max(0, Math.min(720, formScroll.availableWidth - 32))
             anchors {
                 top: parent.top
                 horizontalCenter: parent.horizontalCenter
                 topMargin: 20
             }
-            columns: 2
+            columns: width < 500 ? 1 : 2
             rowSpacing: 20
             columnSpacing: 20
 
             Label {
-                Layout.alignment: Qt.AlignRight
+                Layout.alignment: formGrid.columns === 1 ? Qt.AlignLeft : Qt.AlignRight
                 text: qsTr("Host:")
             }
 
             C.TextField {
                 id: hostField
                 echoMode: Chiaki.settings.streamerMode ? TextInput.Password : TextInput.Normal
+                Layout.fillWidth: true
                 Layout.preferredWidth: 400
                 firstInFocusChain: true
             }
 
             Label {
-                Layout.alignment: Qt.AlignRight
+                Layout.alignment: formGrid.columns === 1 ? Qt.AlignLeft : Qt.AlignRight
                 text: qsTr("Registered Consoles:")
             }
 
             C.ComboBox {
                 id: consoleCombo
+                Layout.fillWidth: true
                 Layout.preferredWidth: 400
                 lastInFocusChain: true
                 textRole: "name"
@@ -73,6 +84,7 @@ DialogView {
                     return m;
                 }
             }
+        }
         }
     }
 }

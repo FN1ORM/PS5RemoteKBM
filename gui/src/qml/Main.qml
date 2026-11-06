@@ -9,14 +9,17 @@ Item {
     id: root
     property list<Item> restoreFocusItems
     property bool initialAsk: false
-    Button {
+    Shortcut { sequence: "F3"; onActivated: Chiaki.window.showUserManual() }
+    Shortcut { sequence: "F4"; onActivated: Chiaki.window.showConnectionTools() }
+    RowLayout {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.margins: 8
         z: 100
         visible: !Chiaki.session
-        text: qsTr("Keyboard & mouse (F2)")
-        onClicked: Chiaki.window.showNativeControls()
+        Button { text: qsTr("Controls · F2"); onClicked: Chiaki.window.showNativeControls() }
+        Button { text: qsTr("Connection · F4"); onClicked: Chiaki.window.showConnectionTools() }
+        Button { text: qsTr("Manual · F3"); onClicked: Chiaki.window.showUserManual() }
     }
     Label {
         id: nativeInputLabel
@@ -28,7 +31,10 @@ Item {
         color: "white"
         padding: 6
         background: Rectangle { color: "#aa101820"; radius: 4 }
-        text: "F1 captures mouse • F2 controls"
+        width: Math.min(implicitWidth, parent.width - 16)
+        wrapMode: Text.Wrap
+        font.pixelSize: 14
+        text: "F1 capture · F2 controls · F3 manual · F4 connection"
         Timer {
             interval: 100
             running: nativeInputLabel.visible
@@ -39,7 +45,10 @@ Item {
     readonly property bool preferSeparateStreamSettingsWindows: Chiaki.window.runtimeRendererBackend === 1 && Chiaki.session
     property bool useSeparateStreamSettingsWindows: false
     Material.theme: Material.Dark
-    Material.accent: "#00a7ff"
+    Material.accent: "#38b6ff"
+    Material.primary: "#142238"
+    Material.background: "#0c1320"
+    Material.foreground: "#e5edf7"
 
     function controllerButton(name) {
         let type = "deck";
@@ -286,7 +295,7 @@ Item {
         anchors.fill: parent
         hoverEnabled: false
         initialItem: mainViewComponent
-        font.pixelSize: 20
+        font.pixelSize: 16
 
         replaceEnter: Transition {
             PropertyAnimation {
@@ -311,8 +320,8 @@ Item {
         id: placeboSettingsRect
         opacity: 0.0
         visible: opacity && !useSeparateStreamSettingsWindows
-        height: 650
-        width: 1200
+        height: Math.min(650, root.height)
+        width: Math.min(1200, root.width)
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
         color: Material.background
@@ -327,8 +336,8 @@ Item {
         opacity: 0.0
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
-        height: 500
-        width: 1200
+        height: Math.min(500, root.height)
+        width: Math.min(1200, root.width)
         visible: opacity && !useSeparateStreamSettingsWindows
         color: Material.background
         Loader {
@@ -343,7 +352,7 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         opacity: 0.0
         height: 600
-        width: 1200
+        width: Math.min(1200, root.width)
         visible: opacity && !useSeparateStreamSettingsWindows
         color: Material.background
         Loader {
@@ -449,8 +458,8 @@ Item {
             bottomMargin: 30
         }
         color: Material.accent
-        width: errorLayout.width + 40
-        height: errorLayout.height + 20
+        width: Math.max(0, Math.min(root.width - 32, 680))
+        height: Math.min(root.height - 32, errorLayout.height + 20)
         radius: 8
         opacity: errorHideTimer.running ? 0.8 : 0.0
 
@@ -458,10 +467,12 @@ Item {
 
         ColumnLayout {
             id: errorLayout
-            anchors.centerIn: parent
+            anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 16 }
 
             Label {
                 id: errorTitleLabel
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
                 Layout.alignment: Qt.AlignCenter
                 font.bold: true
                 font.pixelSize: 24
@@ -469,9 +480,11 @@ Item {
 
             Label {
                 id: errorTextLabel
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
                 Layout.alignment: Qt.AlignCenter
                 horizontalAlignment: Text.AlignHCenter
-                font.pixelSize: 20
+                font.pixelSize: 16
             }
         }
 
@@ -481,61 +494,8 @@ Item {
         }
     }
 
-    Dialog {
+    MessageDialog {
         id: infoDialog
-        property alias text: infoDialogLabel.text
-        property Item restoreFocusItem
-        parent: Overlay.overlay
-        x: Math.round((root.width - width) / 2)
-        y: Math.round((root.height - height) / 2)
-        modal: true
-        Material.roundedScale: Material.MediumScale
-        onOpened: infoDialogLabel.forceActiveFocus(Qt.TabFocusReason)
-        onClosed: {
-            if (restoreFocusItem)
-                restoreFocusItem.forceActiveFocus(Qt.TabFocusReason);
-            infoDialogLabel.focus = false;
-        }
-
-        Component.onCompleted: {
-            header.horizontalAlignment = Text.AlignHCenter;
-            header.background = null;
-        }
-
-        ColumnLayout {
-            spacing: 20
-
-            Label {
-                id: infoDialogLabel
-                Keys.onEscapePressed: infoDialog.close()
-                Keys.onReturnPressed: infoDialog.close()
-            }
-
-            RowLayout {
-                Layout.alignment: Qt.AlignCenter
-
-                Button {
-                    text: qsTr("OK")
-                    Material.background: Material.accent
-                    flat: true
-                    leftPadding: 50
-                    onClicked: infoDialog.close()
-                    Material.roundedScale: Material.SmallScale
-
-                    Image {
-                        anchors {
-                            left: parent.left
-                            verticalCenter: parent.verticalCenter
-                            leftMargin: 12
-                        }
-                        width: 28
-                        height: 28
-                        sourceSize: Qt.size(width, height)
-                        source: root.controllerButton("cross")
-                    }
-                }
-            }
-        }
     }
 
     ConfirmDialog {

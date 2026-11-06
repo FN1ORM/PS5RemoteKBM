@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 #include "kbminput.h"
 #include "kbmprofiles.h"
+#include "kbmwidgets.h"
 #include "streamsession.h"
 #include <QApplication>
 #include <QWindow>
@@ -22,6 +23,7 @@
 #include <QMessageBox>
 #include <QPainter>
 #include <QDebug>
+#include <QScreen>
 #ifdef Q_OS_WIN
 #include <windows.h>
 #endif
@@ -34,7 +36,7 @@ class StickPreview : public QWidget {
 public:
     kbm::Report report;
     bool captured=false;
-    explicit StickPreview(QWidget *p):QWidget(p) { setMinimumSize(410,160); setFocusPolicy(Qt::StrongFocus); }
+    explicit StickPreview(QWidget *p):QWidget(p) { setMinimumSize(280,160); setFocusPolicy(Qt::StrongFocus); }
     void paintEvent(QPaintEvent*) override {
         QPainter p(this); p.setRenderHint(QPainter::Antialiasing); p.fillRect(rect(),QColor(25,29,37));
         p.setPen(Qt::white); p.drawText(12,22,captured?"CAPTURED — Esc releases":"Released — click Test capture below");
@@ -165,10 +167,13 @@ bool KbmInput::eventFilter(QObject *object,QEvent *event) {
     if(event->type()==QEvent::KeyPress || event->type()==QEvent::KeyRelease) {
         auto e=static_cast<QKeyEvent*>(event); bool down=event->type()==QEvent::KeyPress;
         if(binding>=0 && down && !e->isAutoRepeat()) {
-            if(e->key()!=Qt::Key_Escape && e->key()!=Qt::Key_F1 && e->key()!=Qt::Key_F2) keys[binding]=e->key();
+            if(e->key()!=Qt::Key_Escape && e->key()!=Qt::Key_F1 && e->key()!=Qt::Key_F2 && e->key()!=Qt::Key_F3 && e->key()!=Qt::Key_F4) keys[binding]=e->key();
             binding=-1; if(rebuildBindings) rebuildBindings(); save(); return true;
         }
         if(object==window && down && !e->isAutoRepeat() && e->key()==Qt::Key_F2) {showControls(); return true;}
+        if(object==window && down && !e->isAutoRepeat() && (e->key()==Qt::Key_F3 || e->key()==Qt::Key_F4)) {
+            release(); QMetaObject::invokeMethod(window,e->key()==Qt::Key_F3?"showUserManual":"showConnectionTools",Qt::QueuedConnection); return true;
+        }
         if(captured && down && e->key()==Qt::Key_Escape) {release(); return true;}
         if(object==window && down && !e->isAutoRepeat() && e->key()==Qt::Key_F1) {if(captured) release(); else capture(false); return true;}
         if(captured) {
@@ -185,13 +190,14 @@ bool KbmInput::eventFilter(QObject *object,QEvent *event) {
 void KbmInput::showControls() {
     release();
     if(dialog) {dialog->show(); dialog->raise(); dialog->activateWindow(); return;}
-    dialog=new QDialog; dialog->setWindowTitle("PS5 Remote KBM — Controls and local input test"); dialog->resize(620,760);
+    dialog=new QDialog; styleKbmDialog(dialog); dialog->setWindowTitle("PS5 Remote KBM — Controls and local input test"); dialog->resize(620,760);
+    if(window->screen()) dialog->resize(dialog->size().boundedTo(window->screen()->availableGeometry().size()-QSize(40,60)));
     auto layout=new QVBoxLayout(dialog);
     auto help=new QLabel("F1 captures during streaming. Esc, Alt+Tab, focus loss and disconnect release all input.\nF2 opens this panel. Mouse aiming emulates a stick; each game limits camera speed."); help->setWordWrap(true); layout->addWidget(help);
     auto row=new QHBoxLayout; auto profiles=new QComboBox; auto s=controlsSettings(); s.beginGroup("profiles");
     auto list=s.childGroups(); if(!list.contains(profile)) list.prepend(profile); profiles->addItems(list); profiles->setCurrentText(profile);
     row->addWidget(new QLabel("Profile")); row->addWidget(profiles,1); auto add=new QPushButton("Save as…"); auto reset=new QPushButton("Reset defaults"); row->addWidget(add); row->addWidget(reset); layout->addLayout(row);
-    auto scroll=new QScrollArea; scroll->setWidgetResizable(true); auto body=new QWidget; auto form=new QFormLayout(body); scroll->setWidget(body); layout->addWidget(scroll,1);
+    auto scroll=new QScrollArea; scroll->setWidgetResizable(true); auto body=new QWidget; auto form=new QFormLayout(body); form->setRowWrapPolicy(QFormLayout::WrapLongRows); scroll->setWidget(body); layout->addWidget(scroll,1);
     auto &c=engine.config;
     auto numeric=[&](const char *label,double &value,double lo,double hi,double step) {
         auto spin=new QDoubleSpinBox; spin->setRange(lo,hi); spin->setDecimals(3); spin->setSingleStep(step); spin->setValue(value);
@@ -203,6 +209,11 @@ void KbmInput::showControls() {
     numeric("Smoothing window (ms)",c.smoothingMs,0,200,1); numeric("Recenter ramp (ms)",c.recenterMs,0,500,1);
     numeric("Walking tilt (hold Ctrl)",c.walkTilt,.05,1,.05);
     auto invert=new QCheckBox; invert->setChecked(c.invertY); connect(invert,&QCheckBox::toggled,this,[this](bool v){release();engine.config.invertY=v;save();}); form->addRow("Invert Y",invert);
+    auto rolling=new QCheckBox;rolling->setChecked(c.rollingWindow);
+    connect(rolling,&QCheckBox::toggled,this,[this](bool v){release();engine.config.rollingWindow=v;save();});
+    form->addRow("Rolling mouse window (less stop drift)",rolling);
+    auto precise=new QPushButton("Precise mouse preset (8 ms, no recenter tail)");form->addRow(precise);
+    auto smooth=new QPushButton("Smooth stick preset (16 ms, 35 ms tail)");form->addRow(smooth);
     QList<QPushButton*> keyLabels;
     for(int a=0;a<kbm::Count;++a) {
         auto line=new QHBoxLayout; auto button=new QPushButton; keyLabels.append(button); line->addWidget(button,1);
@@ -218,6 +229,8 @@ void KbmInput::showControls() {
     auto test=new QPushButton("Test capture (Esc releases)"); layout->addWidget(test); connect(test,&QPushButton::clicked,this,[this]{capture(true);});
     auto close=new QPushButton("Close"); layout->addWidget(close); connect(close,&QPushButton::clicked,dialog,&QDialog::reject);
     auto recreate=[this]{release();binding=-1;rebuildBindings={};auto old=dialog;dialog=nullptr;preview=nullptr;status=nullptr;old->hide();old->deleteLater();showControls();};
+    connect(precise,&QPushButton::clicked,this,[this,recreate]{release();auto &c=engine.config;c.rollingWindow=true;c.smoothingMs=8;c.recenterMs=0;c.exponent=1;c.deadzone=0;c.antiDeadzone=0;save();recreate();});
+    connect(smooth,&QPushButton::clicked,this,[this,recreate]{release();engine.config.rollingWindow=false;engine.config.smoothingMs=16;engine.config.recenterMs=35;save();recreate();});
     connect(profiles,&QComboBox::currentTextChanged,this,[this,recreate](const QString &name){auto s=controlsSettings();s.setValue("active",name);load();recreate();});
     connect(add,&QPushButton::clicked,this,[this,recreate]{bool ok=false;auto name=QInputDialog::getText(dialog,"Save profile","Name (letters, numbers, spaces, hyphen):",QLineEdit::Normal,"",&ok).trimmed();
         if(!ok || name.isEmpty()) return; for(auto ch:name) if(!ch.isLetterOrNumber() && ch!=' ' && ch!='-' && ch!='_') return;

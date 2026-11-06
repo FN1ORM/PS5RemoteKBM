@@ -42,6 +42,14 @@ int main() {
     for(int n=0;n<40;++n) { a.mouse(1,0,10+n*.001); if(n%4==0) b.mouse(4,0,10+n*.001); }
     auto ra=a.tick(10.039),rb=b.tick(10.039);
     check(std::abs(ra.rx-rb.rx)<=1,"polling cadence independence");
+    // Rolling windows shed old motion as time advances, including reversals.
+    Engine precise; precise.config.rollingWindow=true; precise.config.smoothingMs=8; precise.config.recenterMs=0;
+    precise.mouse(8,0,11); precise.mouse(-4,0,11.006);
+    check(precise.tick(11.006).rx>0,"rolling initial net motion");
+    check(precise.tick(11.009).rx<0,"rolling reversal discards stale direction");
+    check(precise.tick(11.015).rx==0,"precise stops within one window");
+    precise.mouse(1,0,12);check(precise.tick(12).rx>0,"precise micro movement");
+    precise.reset();check(precise.tick(12.001).rx==0,"precise focus release neutral");
     // Sweep valid reports and ensure sticks stay inside the circular domain.
     for(int n=0;n<1000;++n) {
         e.mouse(std::sin(n)*100,std::cos(n)*100,20+n*.01); r=e.tick(20+n*.01);

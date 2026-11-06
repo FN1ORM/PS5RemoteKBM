@@ -32,30 +32,40 @@ DialogView {
     }
 
     Item {
+        ScrollView {
+            id: formScroll
+            contentHeight: formGrid.implicitHeight + 40
+            anchors.fill: parent
+            clip: true
+            contentWidth: availableWidth
         GridLayout {
+            id: formGrid
+            height: implicitHeight
+            width: Math.max(0, Math.min(720, formScroll.availableWidth - 32))
             anchors {
                 top: parent.top
                 horizontalCenter: parent.horizontalCenter
                 topMargin: 20
             }
-            columns: 2
+            columns: width < 500 ? 1 : 2
             rowSpacing: 10
             columnSpacing: 20
 
             Label {
-                Layout.alignment: Qt.AlignRight
+                Layout.alignment: formGrid.columns === 1 ? Qt.AlignLeft : Qt.AlignRight
                 text: qsTr("Host:")
             }
 
             C.TextField {
                 id: hostField
                 echoMode: Chiaki.settings.streamerMode ? TextInput.Password : TextInput.Normal
+                Layout.fillWidth: true
                 Layout.preferredWidth: 400
                 firstInFocusChain: true
             }
 
             Label {
-                Layout.alignment: Qt.AlignRight
+                Layout.alignment: formGrid.columns === 1 ? Qt.AlignLeft : Qt.AlignRight
                 text: qsTr("PSN Online-ID:")
                 visible: onlineId.visible
             }
@@ -65,11 +75,12 @@ DialogView {
                 echoMode: Chiaki.settings.streamerMode ? TextInput.Password : TextInput.Normal
                 visible: ps4_7.checked
                 placeholderText: qsTr("username, case-sensitive")
+                Layout.fillWidth: true
                 Layout.preferredWidth: 400
             }
 
             Label {
-                Layout.alignment: Qt.AlignRight
+                Layout.alignment: formGrid.columns === 1 ? Qt.AlignLeft : Qt.AlignRight
                 text: qsTr("PSN Account-ID:")
                 visible: accountId.visible
             }
@@ -79,6 +90,7 @@ DialogView {
                 visible: !ps4_7.checked
                 echoMode: Chiaki.settings.streamerMode ? TextInput.Password : TextInput.Normal
                 placeholderText: qsTr("base64")
+                Layout.fillWidth: true
                 Layout.preferredWidth: 400 - loginButton.width - 10
                 KeyNavigation.priority: {
                     if(readOnly)
@@ -131,13 +143,14 @@ DialogView {
             }
 
             Label {
-                Layout.alignment: Qt.AlignRight
+                Layout.alignment: formGrid.columns === 1 ? Qt.AlignLeft : Qt.AlignRight
                 text: qsTr("Remote Play PIN:")
             }
 
             C.TextField {
                 id: pin
                 validator: RegularExpressionValidator { regularExpression: /[0-9]{8}/ }
+                Layout.fillWidth: true
                 Layout.preferredWidth: 400
                 echoMode: Chiaki.settings.streamerMode ? TextInput.Password : TextInput.Normal
                 KeyNavigation.priority: {
@@ -150,7 +163,7 @@ DialogView {
             }
 
             Label {
-                Layout.alignment: Qt.AlignRight
+                Layout.alignment: formGrid.columns === 1 ? Qt.AlignLeft : Qt.AlignRight
                 text: qsTr("Console Pin [Optional]")
             }
 
@@ -158,11 +171,12 @@ DialogView {
                 id: cpin
                 echoMode: Chiaki.settings.streamerMode ? TextInput.Password : TextInput.Normal
                 validator: RegularExpressionValidator { regularExpression: /^$|[0-9]{4}/ }
+                Layout.fillWidth: true
                 Layout.preferredWidth: 400
             }
 
             Label {
-                Layout.alignment: Qt.AlignRight
+                Layout.alignment: formGrid.columns === 1 ? Qt.AlignLeft : Qt.AlignRight
                 text: qsTr("Console:")
             }
 
@@ -197,6 +211,7 @@ DialogView {
                 }
             }
         }
+        }
 
         ButtonGroup {
             id: consoleButtons
@@ -204,11 +219,9 @@ DialogView {
         }
 
         Item {
-            Dialog {
+            BoundedDialog {
                 id: logDialog
                 parent: Overlay.overlay
-                x: Math.round((root.width - width) / 2)
-                y: Math.round((root.height - height) / 2)
                 title: qsTr("Register Console")
                 modal: true
                 closePolicy: Popup.NoAutoClose
@@ -222,19 +235,21 @@ DialogView {
                     implicitWidth: 600
                     implicitHeight: 400
                     clip: true
-                    contentWidth: logArea.contentWidth
+                    contentWidth: width
                     contentHeight: logArea.contentHeight
                     flickableDirection: Flickable.AutoFlickIfNeeded
                     ScrollBar.vertical: ScrollBar {
                         id: logScrollbar
                         policy: ScrollBar.AlwaysOn
-                        visible: logFlick.contentHeight > logFlick.implicitHeight
+                        visible: logFlick.contentHeight > logFlick.height
                     }
 
                     Label {
                         id: logArea
                         width: logFlick.width
-                        wrapMode: TextEdit.Wrap
+                        wrapMode: Text.Wrap
+                        textFormat: Text.PlainText
+                        font.pixelSize: 16
                         Keys.onReturnPressed: if (logDialog.standardButtons == Dialog.Close) logDialog.close()
                         Keys.onEscapePressed: logDialog.close()
                         Keys.onPressed: (event) => {

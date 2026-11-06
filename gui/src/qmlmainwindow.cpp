@@ -1,5 +1,6 @@
 #include "qmlmainwindow.h"
 #include "kbminput.h"
+#include "kbmconnection.h"
 #include "qmlbackend.h"
 #include "qmlsvgprovider.h"
 #include "chiaki/log.h"
@@ -7821,5 +7822,7 @@ QObject *QmlMainWindow::focusObject() const
     return quick_window->focusObject();
 }
 
+void QmlMainWindow::showConnectionTools() { if(native_input) native_input->release(); showKbmConnectionTools(this, settings); }
+void QmlMainWindow::showUserManual() { if(native_input) native_input->release(); openKbmManual(); }
 void QmlMainWindow::showNativeControls() { if(native_input) native_input->showControls(); }
 QString QmlMainWindow::nativeInputStatus() const { return native_input ? native_input->statusText() : QString(); }

@@ -33,7 +33,7 @@ Item {
 
     StackView.onActivated: {
         if (!restoreFocusItem) {
-            let item = mainItem.nextItemInFocusChain();
+            let item = mainItem ? mainItem.nextItemInFocusChain() : null;
             if (item)
                 item.forceActiveFocus(Qt.TabFocusReason);
         } else {
@@ -51,71 +51,42 @@ Item {
 
     ToolBar {
         id: toolBar
-        anchors {
-            top: parent.top
-            left: parent.left
-            right: parent.right
-        }
-        height: 80
-
+        anchors { top: parent.top; left: parent.left; right: parent.right }
+        height: headerLabel.visible ? 88 : 64
         RowLayout {
-            anchors {
-                fill: parent
-                leftMargin: 10
-                rightMargin: 10
-            }
-
+            anchors { fill: parent; margins: 8 }
+            spacing: 12
             Button {
-                Layout.fillHeight: true
-                Layout.preferredWidth: 100
+                text: "Back"
+                Layout.preferredWidth: 64
                 flat: true
-                text: "❮"
                 focusPolicy: Qt.NoFocus
-                Material.roundedScale: Material.SmallScale
-                onClicked: {
-                    dialog.rejected();
-                    dialog.close();
+                onClicked: { dialog.rejected(); dialog.close(); }
+            }
+            ColumnLayout {
+                Layout.fillWidth: true
+                Label {
+                    id: titleLabel
+                    Layout.fillWidth: true
+                    font.pixelSize: 20
+                    font.bold: true
+                    wrapMode: Text.Wrap
+                }
+                Label {
+                    id: headerLabel
+                    Layout.fillWidth: true
+                    visible: text.length > 0
+                    font.pixelSize: 12
+                    wrapMode: Text.Wrap
                 }
             }
-
-            Item { Layout.fillWidth: true }
-
             Button {
                 id: okButton
-                Layout.fillHeight: true
-                flat: true
-                padding: 30
-                font.pixelSize: 25
+                font.pixelSize: 16
+                padding: 12
                 focusPolicy: Qt.NoFocus
-                Material.roundedScale: Material.SmallScale
                 onClicked: dialog.accepted()
-                icon.source: "qrc:/icons/options.svg";
-                icon.width: 50
-                icon.height: 50
             }
-        }
-
-        Label {
-            id: titleLabel
-            anchors.centerIn: parent
-            horizontalAlignment: Qt.AlignHCenter
-            verticalAlignment: Qt.AlignVCenter
-            font.bold: true
-            font.pixelSize: 26
-        }
-
-        Label {
-            id: headerLabel
-            anchors {
-                top: parent.top
-                left: titleLabel.right
-                right: parent.right
-                verticalCenter: parent.verticalCenter
-            }
-            horizontalAlignment: Qt.AlignHCenter
-            verticalAlignment: Qt.AlignVCenter
-            font.bold: true
-            font.pixelSize: 14
         }
     }
 

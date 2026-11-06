@@ -1,6 +1,11 @@
 # Console acceptance — owner-assisted tests
 
-Status: **not yet performed**. A build or local input test cannot prove streaming.
+Status as of November 7: **partially completed by owner report**. PSN sign-in,
+console listing, Android subnet routing, eight-digit registration and actual
+cross-city video/keyboard/mouse control succeeded. PSN without the phone, audio
+quality, routed wake, the new presets and prolonged stability still need live checks.
+The numbered list remains a repeatable checklist; it is not a claim that every item
+has passed. A build or local input test alone cannot prove streaming.
 Never send PSN passwords, complete redirect URLs, tokens, registration keys or PINs
 in chat. Enter them only into the browser/app yourself.
 
@@ -25,7 +30,7 @@ account and Remote Play enabled, initially awake with help available at its loca
    experiment; do not mark it passed because a device name appeared.
 5. If automatic registration fails, follow `vpn-registration.md`, verify the PS5's
    routed LAN address, and manually register PS5 with its current eight-digit PIN
-   and broadcast disabled. Confirm successful registration persists after restart.
+   using its actual LAN IP (unicast registration). Confirm successful registration persists after restart.
 6. Connect through PSN from the laptop's different-city network. Start at 720p60,
    H.264, modest bitrate (e.g. 8 Mbps), normal aspect ratio, SDR. Confirm **live PS5
    video**, not just the connection overlay, and **audible PS5 audio**. If hardware

@@ -801,7 +801,7 @@ DialogView {
                     C.ComboBox {
                         id: windowTypeCombo
                         Layout.preferredWidth: 400
-                        popup.width: 500
+                        popup.width: Math.min(500, root.width - 32)
                         model: [qsTr("Stream Resolution"), qsTr("Custom Resolution"), qsTr("Adjust Resolution Manually"), qsTr("Fullscreen"), qsTr("Zoom [adjust zoom using slider in stream menu]"), qsTr("Stretch")]
                         currentIndex: Chiaki.settings.windowType
                         onActivated: (index) => Chiaki.settings.windowType = index;
@@ -1563,7 +1563,7 @@ DialogView {
                             id: audioOutDevice
                             Layout.preferredWidth: 400
                             popup.x: (width - popup.width) / 2
-                            popup.width: 700
+                            popup.width: Math.min(700, root.width - 32)
                             popup.font.pixelSize: 16
                             firstInFocusChain: true
                             model: [qsTr("Auto")].concat(Chiaki.settings.availableAudioOutDevices)
@@ -1587,7 +1587,7 @@ DialogView {
                             id: audioInDevice
                             Layout.preferredWidth: 400
                             popup.x: (width - popup.width) / 2
-                            popup.width: 700
+                            popup.width: Math.min(700, root.width - 32)
                             popup.font.pixelSize: 16
                             model: [qsTr("Auto")].concat(Chiaki.settings.availableAudioInDevices)
                             currentIndex: Math.max(0, model.indexOf(Chiaki.settings.audioInDevice))
@@ -3108,7 +3108,7 @@ DialogView {
             }
         }
 
-        Dialog {
+        BoundedDialog {
             id: aboutDialog
             parent: Overlay.overlay
             x: Math.round((root.width - width) / 2)
@@ -3151,7 +3151,7 @@ DialogView {
             }
         }
 
-        Dialog {
+        BoundedDialog {
             id: keyDialog
             focus: false
             property int buttonValue
@@ -3197,7 +3197,7 @@ DialogView {
             }
         }
 
-        Dialog {
+        BoundedDialog {
             id: controllerMappingDialog
             property bool resetFocus: true
             property bool resetMapping: false
@@ -3243,7 +3243,7 @@ DialogView {
             }
         }
 
-        Dialog {
+        BoundedDialog {
             id: steamControllerMappingDialog
             property bool resetMapping: false
             parent: Overlay.overlay

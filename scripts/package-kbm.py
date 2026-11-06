@@ -2,12 +2,15 @@
 from pathlib import Path
 import hashlib
 import json
+import os
 import subprocess
 import zipfile
 
 root = Path(__file__).resolve().parents[1]
 out = root / 'dist'
-binary = out / 'PS5RemoteKBM-win-x64'
+binary = Path(os.environ.get('KBM_DEPLOY_DIR', str(out / 'PS5RemoteKBM-win-x64'))).resolve()
+if not binary.is_dir() or out.resolve() not in binary.parents:
+    raise ValueError('Deployment must be an existing directory inside dist')
 out.mkdir(exist_ok=True)
 
 def git(*args, cwd=root):

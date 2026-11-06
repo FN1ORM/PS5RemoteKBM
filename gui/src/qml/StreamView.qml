@@ -909,12 +909,10 @@ Item {
         }
     }
 
-    Popup {
+    BoundedDialog {
         id: sessionStopDialog
         property int closeAction: 0
         parent: Overlay.overlay
-        x: Math.round((root.width - width) / 2)
-        y: Math.round((root.height - height) / 2)
         modal: true
         padding: 30
         onAboutToShow: {
@@ -935,28 +933,30 @@ Item {
                 Layout.alignment: Qt.AlignCenter
                 text: qsTr("Disconnect Session")
                 font.bold: true
-                font.pixelSize: 24
+                font.pixelSize: 18
             }
 
             Label {
                 Layout.topMargin: 10
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
                 Layout.alignment: Qt.AlignCenter
-                text: qsTr("Do you want the Console to go into sleep mode?")
-                font.pixelSize: 20
+                text: qsTr("Rest Mode ends this stream. Choose Rest, or disconnect and leave the PS5 awake.")
+                font.pixelSize: 16
             }
 
             RowLayout {
                 Layout.topMargin: 30
                 Layout.alignment: Qt.AlignCenter
-                spacing: 30
+                spacing: 12
 
                 Button {
                     id: sleepButton
-                    Layout.preferredWidth: 200
-                    Layout.minimumHeight: 80
-                    Layout.maximumHeight: 80
-                    text: qsTr("Sleep")
-                    font.pixelSize: 24
+                    Layout.preferredWidth: 150
+                    Layout.minimumHeight: 48
+                    Layout.maximumHeight: 48
+                    text: qsTr("Rest PS5")
+                    font.pixelSize: 18
                     Material.roundedScale: Material.SmallScale
                     Material.background: activeFocus ? parent.Material.accent : undefined
                     KeyNavigation.right: noButton
@@ -971,11 +971,11 @@ Item {
 
                 Button {
                     id: noButton
-                    Layout.preferredWidth: 200
-                    Layout.minimumHeight: 80
-                    Layout.maximumHeight: 80
-                    text: qsTr("No")
-                    font.pixelSize: 24
+                    Layout.preferredWidth: 150
+                    Layout.minimumHeight: 48
+                    Layout.maximumHeight: 48
+                    text: qsTr("Leave awake")
+                    font.pixelSize: 18
                     Material.roundedScale: Material.SmallScale
                     Material.background: activeFocus ? parent.Material.accent : undefined
                     KeyNavigation.left: sleepButton
@@ -993,8 +993,8 @@ Item {
     Window {
         id: separateSessionStopWindow
         property int closeAction: 0
-        readonly property int dialogWidth: 700
-        readonly property int dialogHeight: 260
+        readonly property int dialogWidth: Math.max(0, Math.min(640, view.width - 24))
+        readonly property int dialogHeight: Math.max(0, Math.min(260, view.height - 24))
         visible: false
         flags: Qt.Dialog | Qt.FramelessWindowHint
         color: "transparent"
@@ -1028,34 +1028,36 @@ Item {
         }
 
         ColumnLayout {
-            anchors.centerIn: parent
+            anchors { fill: parent; margins: 20 }
 
             Label {
                 Layout.alignment: Qt.AlignCenter
                 text: qsTr("Disconnect Session")
                 font.bold: true
-                font.pixelSize: 24
+                font.pixelSize: 18
             }
 
             Label {
                 Layout.topMargin: 10
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
                 Layout.alignment: Qt.AlignCenter
-                text: qsTr("Do you want the Console to go into sleep mode?")
-                font.pixelSize: 20
+                text: qsTr("Rest Mode ends this stream. Choose Rest, or disconnect and leave the PS5 awake.")
+                font.pixelSize: 16
             }
 
             RowLayout {
                 Layout.topMargin: 30
                 Layout.alignment: Qt.AlignCenter
-                spacing: 30
+                spacing: 12
 
                 Button {
                     id: separateSleepButton
-                    Layout.preferredWidth: 200
-                    Layout.minimumHeight: 80
-                    Layout.maximumHeight: 80
-                    text: qsTr("Sleep")
-                    font.pixelSize: 24
+                    Layout.preferredWidth: 150
+                    Layout.minimumHeight: 48
+                    Layout.maximumHeight: 48
+                    text: qsTr("Rest PS5")
+                    font.pixelSize: 18
                     Material.roundedScale: Material.SmallScale
                     Material.background: activeFocus ? parent.Material.accent : undefined
                     KeyNavigation.right: separateNoButton
@@ -1069,11 +1071,11 @@ Item {
 
                 Button {
                     id: separateNoButton
-                    Layout.preferredWidth: 200
-                    Layout.minimumHeight: 80
-                    Layout.maximumHeight: 80
-                    text: qsTr("No")
-                    font.pixelSize: 24
+                    Layout.preferredWidth: 150
+                    Layout.minimumHeight: 48
+                    Layout.maximumHeight: 48
+                    text: qsTr("Leave awake")
+                    font.pixelSize: 18
                     Material.roundedScale: Material.SmallScale
                     Material.background: activeFocus ? parent.Material.accent : undefined
                     KeyNavigation.left: separateSleepButton
@@ -1088,11 +1090,9 @@ Item {
         }
     }
 
-    Dialog {
+    BoundedDialog {
         id: sessionPinDialog
         parent: Overlay.overlay
-        x: Math.round((root.width - width) / 2)
-        y: Math.round((root.height - height) / 2)
         title: qsTr("Console Login PIN")
         modal: true
         closePolicy: Popup.NoAutoClose

@@ -1,5 +1,25 @@
 # Local test results — 2026-11-05
 
+## November 7 update — current status
+
+The owner reports successful PSN OAuth, console listing, Android subnet routing,
+eight-digit manual pairing, cross-city video and keyboard/mouse control. Those
+parts of the original checklist below are now completed by owner report. Phone-free
+PSN gameplay, audio quality, routed wake, the new mouse preset and stability gains
+remain to be verified on the real hardware/network.
+
+Seven CTest suites pass in the updated build, including responsive popup tests
+covering 1280×720, 800×600, 480×360 and 1024×768 while the dialog is open. Native
+input now has 1040 checks including rolling-window direction reversal, prompt
+stop, micro movement and neutral release. Profile tests include the new mode.
+See [November release notes](release-2026-11-07.md) for the UI changes and limits.
+The packaged home screen was inspected before the final theme changes. Further
+computer control was stopped by physical Escape. No fresh gameplay or network
+performance benchmark was performed; Tailscale reported NoState locally.
+
+## Original build record (historical)
+
+
 **End-to-end PS5 acceptance remains pending.** The owner deferred PSN sign-in and
 console testing. No account credentials were requested in chat and no live PS5
 session was observed. A successful build does not establish the project's final
@@ -38,7 +58,7 @@ The existing local profile was switched to OpenGL for the successful visual chec
 No streaming CPU percentage, GPU decoding use, FPS, latency or network bitrate was
 measured. Do not infer stable 720p60 from these results.
 
-## Still requires owner/hardware verification
+## Original owner/hardware checklist (see November status above)
 
 PSN OAuth completion; device listing with the real account; clean-client remote-first
 automatic registration; manual eight-digit pairing PIN; VPN route to the remote PS5;

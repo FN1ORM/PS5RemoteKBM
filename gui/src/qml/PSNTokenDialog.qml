@@ -298,11 +298,14 @@ DialogView {
                 horizontalCenter: parent.horizontalCenter
                 topMargin: 50
             }
-            columns: 2
+            width: Math.max(0, Math.min(680, parent.width - 32))
+            columns: 1
             rowSpacing: 10
             columnSpacing: 20
 
             Label {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
                 text: qsTr("Open Web Browser with copied URL")
                 visible: psnurl
             }
@@ -334,6 +337,7 @@ DialogView {
 
             TextField {
                 id: url
+                Layout.fillWidth: true
                 echoMode: Chiaki.settings.streamerMode ? TextInput.Password : TextInput.Normal
                 Layout.preferredWidth: 400
                 KeyNavigation.priority: {
@@ -350,14 +354,10 @@ DialogView {
                 }
                 KeyNavigation.down: url
                 KeyNavigation.right: pasteUrl
+                }
                 C.Button {
                     id: pasteUrl
                     text: qsTr("Click to Paste URL")
-                    anchors {
-                        left: parent.right
-                        verticalCenter: parent.verticalCenter
-                        leftMargin: 10
-                    }
                     onClicked: url.paste()
                     KeyNavigation.priority: KeyNavigation.BeforeItem
                     KeyNavigation.left: url
@@ -369,15 +369,12 @@ DialogView {
                     }
                     KeyNavigation.down: pasteUrl
                 }
-            }
         }
 
         Item {
-            Dialog {
+            BoundedDialog {
                 id: logDialog
                 parent: Overlay.overlay
-                x: Math.round((root.width - width) / 2)
-                y: Math.round((root.height - height) / 2)
                 title: qsTr("Create PSN Automatic Remote Connection Token")
                 modal: true
                 closePolicy: Popup.NoAutoClose
@@ -391,19 +388,21 @@ DialogView {
                     implicitWidth: 600
                     implicitHeight: 400
                     clip: true
-                    contentWidth: logArea.contentWidth
+                    contentWidth: width
                     contentHeight: logArea.contentHeight
                     flickableDirection: Flickable.AutoFlickIfNeeded
                     ScrollBar.vertical: ScrollBar {
                         id: logScrollbar
                         policy: ScrollBar.AlwaysOn
-                        visible: logFlick.contentHeight > logFlick.implicitHeight
+                        visible: logFlick.contentHeight > logFlick.height
                     }
 
                     Label {
                         id: logArea
                         width: logFlick.width
-                        wrapMode: TextEdit.Wrap
+                        wrapMode: Text.Wrap
+                        textFormat: Text.PlainText
+                        font.pixelSize: 16
                         Keys.onReturnPressed: if (logDialog.standardButtons == Dialog.Close) logDialog.close()
                         Keys.onEscapePressed: logDialog.close()
                         Keys.onPressed: (event) => {

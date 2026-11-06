@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
 import QtQuick.Controls.Material
 
 import org.streetpea.chiaking
@@ -13,7 +14,6 @@ Rectangle {
     property list<Item> restoreFocusItems
     color: "black"
 
-    StackView.onActivated: infoLabel.visible = false
 
     function stop() {
         if (!allowClose)
@@ -52,70 +52,76 @@ Rectangle {
         onClicked: view.stop()
     }
 
-    Label {
-        id: infoLabel
-        anchors.centerIn: parent
-        opacity: textVisible ? 1.0: 0.0
-        visible: opacity
-        text: qsTr("Establishing connection with console over PSN ...")
-        Behavior on opacity { NumberAnimation { duration: 250 } }
+    function finishFailure() {
+        view.releaseInput();
+        root.showMainView();
     }
 
-    Item {
-        anchors {
-            top: parent.verticalCenter
-            left: parent.left
-            right: parent.right
-            bottom: parent.bottom
-        }
+    function showFailure(message) {
+        if (cancelling) { root.showMainView(); return; }
+        errorTitleLabel.text = qsTr("Connection could not be established");
+        errorTextLabel.text = message + qsTr("\n\nYour saved registration is unchanged. If PSN traversal keeps failing, connect Tailscale on both devices and use the saved PS5 IP entry. Open F4 for diagnostics or F3 for the manual.");
+        failTimer.stop();
+        spinner.running = false;
+    }
 
-        BusyIndicator {
-            id: spinner
-            anchors.centerIn: parent
-            width: 70
-            height: width
-        }
-
-        Label {
-            id: closeMessageLabel
-            anchors {
-                top: spinner.bottom
-                horizontalCenter: spinner.horizontalCenter
-                topMargin: 30
+    ScrollView {
+        id: progressScroll
+        contentHeight: progressColumn.implicitHeight
+        anchors { fill: parent; margins: 24 }
+        contentWidth: availableWidth
+        clip: true
+        ColumnLayout {
+            id: progressColumn
+            height: implicitHeight
+            width: progressScroll.availableWidth
+            spacing: 20
+            Label {
+                id: infoLabel
+                Layout.fillWidth: true
+                visible: textVisible
+                wrapMode: Text.Wrap
+                horizontalAlignment: Text.AlignHCenter
+                font.pixelSize: 18
+                text: qsTr("Establishing connection with console over PSN ...")
             }
-            opacity: (textVisible && !cancelling) ? 1.0: 0.0
-            visible: opacity
-            text: {
-                var typeString = registOnly ? qsTr("automatic registration") : qsTr("remote connection via PSN")
-                qsTr("Press %1 to cancel %2").arg(Chiaki.controllers.length ? (root.controllerButton("circle").includes("deck") ? "B" : "Circle") : "escape or right-click").arg(typeString)
+            BusyIndicator {
+                id: spinner
+                Layout.alignment: Qt.AlignHCenter
+                Layout.preferredWidth: 48
+                Layout.preferredHeight: 48
+                visible: !errorTitleLabel.text
             }
-        }
-
-        Label {
-            id: errorTitleLabel
-            anchors {
-                bottom: spinner.top
-                horizontalCenter: spinner.horizontalCenter
+            Label {
+                id: closeMessageLabel
+                Layout.fillWidth: true
+                visible: textVisible && !cancelling
+                wrapMode: Text.Wrap
+                horizontalAlignment: Text.AlignHCenter
+                text: qsTr("Press Escape or right-click to cancel the PSN attempt.")
             }
-            font.pixelSize: 24
-            visible: text
-            onVisibleChanged: {
-                if (visible) {
-                    textVisible = false
-                    view.allowClose = false
-                    view.grabInput(errorTitleLabel)
-                }
+            Label {
+                id: errorTitleLabel
+                Layout.fillWidth: true
+                font.pixelSize: 20
+                font.bold: true
+                wrapMode: Text.Wrap
+                visible: text.length > 0
+                onVisibleChanged: if (visible) { textVisible = false; view.allowClose = false; view.grabInput(errorTitleLabel); }
+                Keys.onReturnPressed: view.finishFailure()
+                Keys.onEscapePressed: view.finishFailure()
             }
-            Keys.onReturnPressed: root.showMainView()
-            Keys.onEscapePressed: root.showMainView()
-        }
-
-        Label {
-            id: errorTextLabel
-            anchors {
-                top: errorTitleLabel.bottom
-                horizontalCenter: errorTitleLabel.horizontalCenter
-                topMargin: 10
+            Label {
+                id: errorTextLabel
+                Layout.fillWidth: true
+                font.pixelSize: 16
+                wrapMode: Text.Wrap
+                textFormat: Text.PlainText
+            }
+            Button {
+                visible: errorTitleLabel.visible
+                text: qsTr("Return to consoles")
+                onClicked: view.finishFailure()
             }
         }
     }
@@ -125,8 +131,7 @@ Rectangle {
         interval: 1500
         running: true
         onTriggered: {
-            view.allowClose = true
-            infoLabel.visible = infoLabel.opacity
+            view.allowClose = !errorTitleLabel.text
         }
     }
 
@@ -137,11 +142,9 @@ Rectangle {
         onTriggered: root.showMainView()
     }
 
-    Dialog {
+    BoundedDialog {
         id: sessionPinDialog
         parent: Overlay.overlay
-        x: Math.round((root.width - width) / 2)
-        y: Math.round((root.height - height) / 2)
         title: qsTr("Console Login PIN")
         modal: true
         closePolicy: Popup.NoAutoClose
@@ -201,17 +204,17 @@ Rectangle {
                 case Chiaki.PsnConnectState.ConnectFailed:
                     if(!cancelling)
                         infoLabel.text = qsTr("Connection over PSN failed closing ...")
-                    failTimer.running = true
+                    view.showFailure(infoLabel.text)
                     break
                 case Chiaki.PsnConnectState.ConnectFailedStart:
                     if(!cancelling)
                         infoLabel.text = qsTr("PSN couldn't establish connection with PlayStation. Please try again ...")
-                    failTimer.running = true
+                    view.showFailure(infoLabel.text)
                     break
                 case Chiaki.PsnConnectState.ConnectFailedConsoleUnreachable:
                     if(!cancelling)
                         infoLabel.text = qsTr("Couldn't contact PlayStation over established connection, likely unsupported network type")
-                    failTimer.running = true
+                    view.showFailure(infoLabel.text)
                     break
                 case Chiaki.PsnConnectState.WaitingForInternet:
                     infoLabel.text = qsTr("Establishing Internet Connection to PSN...")
@@ -222,9 +225,7 @@ Rectangle {
         function onSessionChanged() 
         {
             if (!Chiaki.session) {
-                if (errorTitleLabel.text)
-                    failTimer.start();
-                else if(!failTimer.running)
+                if (!errorTitleLabel.text && !failTimer.running)
                     root.showMainView();
             }
         }

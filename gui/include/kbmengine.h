@@ -16,7 +16,7 @@ enum Action { Cross, Circle, Square, Triangle, DLeft, DRight, DUp, DDown,
 struct Config {
     double sensitivityX=1, sensitivityY=1, exponent=1, deadzone=0,
         antiDeadzone=0, smoothingMs=16, recenterMs=35, maximum=1, walkTilt=.45;
-    bool invertY=false;
+    bool invertY=false, rollingWindow=false;
     void sanitize() {
         auto limit=[](double v,double lo,double hi,double fallback) {
             return std::isfinite(v) ? std::max(lo,std::min(hi,v)) : fallback;
@@ -70,7 +70,7 @@ public:
         // 8 ms minimum window at 125 Hz; zero smoothing means one input tick.
         const double window=std::max(.008,config.smoothingMs/1000.0);
         if(lastMovement>=0 && now-lastMovement<=window) {
-            while(!moves.empty() && moves.front().time<lastMovement-window) moves.pop_front();
+            while(!moves.empty() && moves.front().time<(config.rollingWindow ? now : lastMovement)-window) moves.pop_front();
             x=y=0;
             for(const auto &m:moves) { x+=m.dx; y+=m.dy; }
             x*=config.sensitivityX/(2000*window);

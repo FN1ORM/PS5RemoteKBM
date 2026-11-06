@@ -5,7 +5,9 @@ import os
 import struct
 
 root = Path(__file__).resolve().parents[1]
-deploy = root / 'dist/PS5RemoteKBM-win-x64'
+deploy = Path(os.environ.get('KBM_DEPLOY_DIR', str(root / 'dist/PS5RemoteKBM-win-x64'))).resolve()
+if not deploy.is_dir():
+    raise ValueError('Deployment folder does not exist')
 system = Path(os.environ.get('WINDIR', 'C:/Windows')) / 'System32'
 root_dlls = {p.name.lower() for p in deploy.glob('*.dll')}
 system_dlls = {p.name.lower() for p in system.glob('*.dll')}

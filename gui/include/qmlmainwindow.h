@@ -71,6 +71,8 @@ class QmlMainWindow : public QWindow
 
 public:
     Q_INVOKABLE void showNativeControls();
+    Q_INVOKABLE void showConnectionTools();
+    Q_INVOKABLE void showUserManual();
     Q_INVOKABLE QString nativeInputStatus() const;
     enum class UpdateRequestReason {
         Unknown,
