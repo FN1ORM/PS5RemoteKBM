@@ -23,6 +23,7 @@ Item {
     }
     Label {
         id: nativeInputLabel
+        property string captureStatus: qsTr("F1 capture · F2 controls")
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.margins: 8
@@ -34,12 +35,14 @@ Item {
         width: Math.min(implicitWidth, parent.width - 16)
         wrapMode: Text.Wrap
         font.pixelSize: 14
-        text: "F1 capture · F2 controls · F3 manual · F4 connection"
+        text: Chiaki.session && Chiaki.session.viewOnly
+              ? qsTr("Watch only · Alt+F5 to resume control")
+              : captureStatus + qsTr(" · Alt+F5 watch only")
         Timer {
             interval: 100
             running: nativeInputLabel.visible
             repeat: true
-            onTriggered: nativeInputLabel.text = Chiaki.window.nativeInputStatus()
+            onTriggered: nativeInputLabel.captureStatus = Chiaki.window.nativeInputStatus()
         }
     }
     readonly property bool preferSeparateStreamSettingsWindows: Chiaki.window.runtimeRendererBackend === 1 && Chiaki.session

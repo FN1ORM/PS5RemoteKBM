@@ -6,11 +6,10 @@ No virtual controller driver or physical controller is required. Uses the existi
 PSN, registration, video, audio and streaming stack with a new Windows Raw Input
 mouse-to-stick path. This is an unsigned personal development build.
 
-**Built and locally tested; cross-city PS5 gameplay has not yet been verified.**
-Real PSN sign-in, console authorization, registration, video/audio streaming,
-in-game controls, Rest Mode wake and interruption recovery need the owner's tests.
-Remote-first automatic registration is exposed as an experimental attempt, not a
-claim of Sony-client equivalence or guaranteed NAT compatibility.
+The owner confirmed cross-city registration and gameplay through the Android VPN
+route. Watch only with a local player, Rest Mode wake, and interruption recovery
+still need a live console test. Remote-first automatic registration remains
+experimental and depends on network compatibility.
 
 ## Full manual and November update
 
@@ -24,6 +23,9 @@ profiles. **F2** now offers an optional Precise mouse preset; old input profiles
 keep their existing behavior. Popups wrap, scroll and follow the window size.
 See [release notes](docs/kbm/release-2026-11-07.md) for tests and limitations.
 
+During a stream, press **Alt+F5** or choose **Watch only** in the **Ctrl+O** stream
+menu to keep the picture and sound while blocking laptop controls. Toggle back
+with **Alt+F5**, then use **F1** for keyboard and mouse capture.
 
 ## Install and run
 

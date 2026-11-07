@@ -83,6 +83,16 @@ Window {
             color: "#2b2b2b"
         }
 
+        Button {
+            anchors { left: parent.left; top: parent.top; margins: 16 }
+            enabled: Chiaki.session && Chiaki.session.connected
+            text: Chiaki.session && Chiaki.session.viewOnly ? qsTr("Resume control") : qsTr("Watch only")
+            onClicked: {
+                Chiaki.window.toggleViewOnly()
+                streamMenuWindow.closeRequested()
+            }
+        }
+
         RowLayout {
             anchors {
                 left: parent.left
@@ -152,7 +162,7 @@ Window {
                 text: qsTr("Mic")
                 padding: 10
                 checkable: true
-                enabled: Chiaki.session && Chiaki.session.connected
+                enabled: Chiaki.session && Chiaki.session.connected && !Chiaki.session.viewOnly
                 checked: Chiaki.session && !Chiaki.session.muted
                 onToggled: Chiaki.session.muted = !Chiaki.session.muted
                 KeyNavigation.left: volumeSlider

@@ -1,11 +1,47 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 #include "kbmengine.h"
+#include "remoteinputgate.h"
 #include <cstdio>
 #include <cstdlib>
 #include <limits>
 static int checks=0;
 void check(bool value,const char *name) { ++checks; if(!value) { std::fprintf(stderr,"FAIL: %s\n",name); std::exit(1); } }
+
+static void check_remote_input_gate()
+{
+    RemoteInputGate gate;
+    ChiakiControllerState state;
+    chiaki_controller_state_set_idle(&state);
+    state.buttons = CHIAKI_CONTROLLER_BUTTON_CROSS;
+    check(!gate.Suppresses(state), "a new stream accepts input");
+
+    gate.SetViewOnly(true);
+    check(gate.IsViewOnly() && gate.Suppresses(state), "watch mode blocks a held button");
+    chiaki_controller_state_set_idle(&state);
+    check(gate.Suppresses(state), "watch mode stays blocked after release");
+
+    gate.SetViewOnly(false);
+    state.buttons = CHIAKI_CONTROLLER_BUTTON_CROSS;
+    check(gate.Suppresses(state), "resume waits for held button");
+    state.buttons = 0;
+    state.l2_state = 255;
+    check(gate.Suppresses(state), "resume waits for held trigger");
+    state.l2_state = 0;
+    state.left_x = -32768;
+    check(gate.Suppresses(state), "resume waits for held stick");
+    state.left_x = 0;
+    auto touch = chiaki_controller_state_start_touch(&state, 100, 100);
+    check(gate.Suppresses(state), "resume waits for touch release");
+    chiaki_controller_state_stop_touch(&state, touch);
+    state.gyro_x = 0.1f;
+    state.left_x = 80;
+    check(gate.Suppresses(state), "resume sends a neutral re-arm frame");
+    state.buttons = CHIAKI_CONTROLLER_BUTTON_CROSS;
+    check(!gate.Suppresses(state), "fresh input works after release despite controller drift");
+}
+
 int main() {
+    check_remote_input_gate();
     using namespace kbm;
     Engine e;
     e.key(1,Up,true); e.key(2,Right,true);

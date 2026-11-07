@@ -594,7 +594,7 @@ void QmlBackend::resumeFromSleep()
         resume_session = false;
         if(session_info.duid.isEmpty())
         {
-            createSession({
+            StreamSessionConnectInfo resumed_info{
                 session_info.settings,
                 session_info.target,
                 session_info.host,
@@ -607,7 +607,9 @@ void QmlBackend::resumeFromSleep()
                 session_info.fullscreen,
                 session_info.zoom,
                 session_info.stretch,
-            });
+            };
+            resumed_info.view_only = session_info.view_only;
+            createSession(resumed_info);
         }
         else
         {
@@ -1120,6 +1122,11 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         return;
     }
 
+    session->SetViewOnly(session_info.view_only);
+    connect(session, &StreamSession::ViewOnlyChanged, this, [this] {
+        session_info.view_only = session->IsViewOnly();
+    });
+
     connect(session, &StreamSession::FfmpegFrameAvailable, frame_thread->parent(), [this, use_opengl_renderer]() {
         ChiakiFfmpegDecoder *decoder = session->GetFfmpegDecoder();
         if (!decoder) {
@@ -1259,7 +1266,7 @@ bool QmlBackend::closeRequested()
         return true;
 
     bool stop = true;
-    if (session->IsConnected()) {
+    if (session->IsConnected() && !session->IsViewOnly()) {
         switch (settings->GetDisconnectAction()) {
         case DisconnectAction::Ask:
             stop = false;

@@ -31,6 +31,7 @@
 #include "sessionlog.h"
 #include "controllermanager.h"
 #include "settings.h"
+#include "remoteinputgate.h"
 
 #include <QObject>
 #include <QImage>
@@ -103,6 +104,7 @@ class SdeckHapticsWorker;
 		bool buttons_by_pos;
 		bool enable_idr_on_fec_failure;
 		bool start_mic_unmuted;
+		bool view_only = false;
 		bool port_guessing_enabled;
 		int port_guess_count;
 		int port_guess_socket_count;
@@ -157,6 +159,7 @@ class StreamSession : public QObject
 	Q_PROPERTY(double measuredBitrate READ GetMeasuredBitrate NOTIFY MeasuredBitrateChanged)
 	Q_PROPERTY(double averagePacketLoss READ GetAveragePacketLoss NOTIFY AveragePacketLossChanged)
 	Q_PROPERTY(bool muted READ GetMuted WRITE SetMuted NOTIFY MutedChanged)
+	Q_PROPERTY(bool viewOnly READ IsViewOnly NOTIFY ViewOnlyChanged)
 	Q_PROPERTY(bool cantDisplay READ GetCantDisplay NOTIFY CantDisplayChanged)
 	Q_PROPERTY(int framesLost READ GetFramesLost NOTIFY FramesLostChanged)
 
@@ -176,6 +179,7 @@ class StreamSession : public QObject
 #endif
 		bool allow_unmute;
 		int input_block;
+		RemoteInputGate remote_input_gate;
 		QString host;
 		int audio_volume;
 		double measured_bitrate = 0;
@@ -380,6 +384,8 @@ class StreamSession : public QObject
 		void ReadMic(const QByteArray &micdata);
 
 		void SetNativeControllerState(const ChiakiControllerState &state) { native_kbm_state = state; SendFeedbackState(); }
+		bool IsViewOnly() const { return remote_input_gate.IsViewOnly(); }
+		void SetViewOnly(bool enabled);
 		void BlockInput(bool block) { input_block = block ? 1 : 2; SendFeedbackState(); }
 
 	signals:
@@ -399,6 +405,7 @@ class StreamSession : public QObject
 		void AveragePacketLossChanged();
 		void FramesLostChanged();
 		void MutedChanged();
+		void ViewOnlyChanged();
 		void CantDisplayChanged(bool cant_display);
 		void FecFailure();
 
@@ -406,6 +413,7 @@ class StreamSession : public QObject
 		void UpdateGamepads();
 		void DpadSendFeedbackState();
 		void SendFeedbackState();
+		void SendFeedbackStateImpl(bool dpad_placeholder);
 };
 
 Q_DECLARE_METATYPE(ChiakiQuitReason)

@@ -839,12 +839,13 @@ void StreamSession::Stop()
 
 void StreamSession::GoToBed()
 {
-	chiaki_session_goto_bed(&session);
+	if (!IsViewOnly())
+		chiaki_session_goto_bed(&session);
 }
 
 void StreamSession::ToggleMute()
 {
-	if(!allow_unmute)
+	if(!allow_unmute || (IsViewOnly() && muted))
 		return;
 	if(!mic_connected)
 	{
@@ -896,7 +897,33 @@ void StreamSession::SetLoginPIN(const QString &pin)
 
 void StreamSession::GoHome()
 {
-	chiaki_session_go_home(&session);
+	if (!IsViewOnly())
+		chiaki_session_go_home(&session);
+}
+
+void StreamSession::SetViewOnly(bool enabled)
+{
+	if (enabled == IsViewOnly())
+		return;
+
+	remote_input_gate.SetViewOnly(enabled);
+	if (enabled)
+	{
+		// Discard synthetic input. Keep tracking real touches so that
+		// an ongoing gesture still has to end before control resumes.
+		chiaki_controller_state_set_idle(&keyboard_state);
+		chiaki_controller_state_set_idle(&native_kbm_state);
+		chiaki_controller_state_set_idle(&dpad_touch_state);
+		double_tap_timer.invalidate();
+		mouse_touch_id = -1;
+		dpad_touch_id = -1;
+		dpad_touch_stop_timer->stop();
+	}
+	SendFeedbackState();
+
+	if (enabled && !muted)
+		ToggleMute();
+	emit ViewOnlyChanged();
 }
 
 void StreamSession::HandleMousePressEvent(QMouseEvent *event)
@@ -1267,62 +1294,15 @@ void StreamSession::RetryHaptics(quint64 generation)
 
 void StreamSession::DpadSendFeedbackState()
 {
-	ChiakiControllerState state;
-	chiaki_controller_state_set_idle(&state);
-
-#if CHIAKI_GUI_ENABLE_SETSU
-	// setsu is the one that potentially has gyro/accel/orient so copy that directly first
-	state = setsu_state;
-#endif
-
-	for(auto controller : controllers)
-	{
-		auto controller_state = controller->GetState();
-		chiaki_controller_state_or(&state, &state, &controller_state);
-	}
-
-#if CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE
-	chiaki_controller_state_or(&state, &state, &sdeck_state);
-#endif
-	chiaki_controller_state_or(&state, &state, &keyboard_state);
-	chiaki_controller_state_or(&state, &state, &native_kbm_state);
-	chiaki_controller_state_or(&state, &state, &touch_state);
-
-	if(input_block)
-	{
-		// Only unblock input after all buttons were released
-		if(input_block == 2 && !state.buttons)
-			input_block = 0;
-		else
-		{
-			chiaki_controller_state_set_idle(&state);
-			chiaki_controller_state_set_idle(&keyboard_state);
-		}
-	}
-	if((dpad_touch_shortcut1 || dpad_touch_shortcut2 || dpad_touch_shortcut3 || dpad_touch_shortcut4) && (!dpad_touch_shortcut1 || (state.buttons & dpad_touch_shortcut1)) && (!dpad_touch_shortcut2 || (state.buttons & dpad_touch_shortcut2)) && (!dpad_touch_shortcut3 || (state.buttons & dpad_touch_shortcut3)) && (!dpad_touch_shortcut4 || (state.buttons & dpad_touch_shortcut4)))
-	{
-		if(!dpad_regular_touch_switched)
-		{
-			dpad_regular_touch_switched = true;
-			dpad_regular = !dpad_regular;
-		}
-	}
-	else
-		dpad_regular_touch_switched = false;
-	if(dpad_touch_increment && !dpad_regular && (state.buttons & (CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN | CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT | CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT | CHIAKI_CONTROLLER_BUTTON_DPAD_UP)))
-	{
-		HandleDpadTouchEvent(&state, true);
-	}
-	else
-	{
-		if(dpad_touch_id >= 0 && !dpad_touch_stop_timer->isActive())
-			dpad_touch_stop_timer->start(NEW_DPAD_TOUCH_INTERVAL_MS);
-	}
-	chiaki_controller_state_or(&state, &state, &dpad_touch_state);
-	chiaki_session_set_controller_state(&session, &state);
+	SendFeedbackStateImpl(true);
 }
 
 void StreamSession::SendFeedbackState()
+{
+	SendFeedbackStateImpl(false);
+}
+
+void StreamSession::SendFeedbackStateImpl(bool dpad_placeholder)
 {
 	ChiakiControllerState state;
 	chiaki_controller_state_set_idle(&state);
@@ -1345,6 +1325,13 @@ void StreamSession::SendFeedbackState()
 	chiaki_controller_state_or(&state, &state, &native_kbm_state);
 	chiaki_controller_state_or(&state, &state, &touch_state);
 
+	if (remote_input_gate.Suppresses(state))
+	{
+		chiaki_controller_state_set_idle(&state);
+		chiaki_session_set_controller_state(&session, &state);
+		return;
+	}
+
 	if(input_block)
 	{
 		// Only unblock input after all buttons were released
@@ -1368,7 +1355,7 @@ void StreamSession::SendFeedbackState()
 		dpad_regular_touch_switched = false;
 	if(dpad_touch_increment && !dpad_regular && (state.buttons & (CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN | CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT | CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT | CHIAKI_CONTROLLER_BUTTON_DPAD_UP)))
 	{
-		HandleDpadTouchEvent(&state);
+		HandleDpadTouchEvent(&state, dpad_placeholder);
 	}
 	else
 	{

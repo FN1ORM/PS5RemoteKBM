@@ -268,6 +268,7 @@ Item {
 
         Button {
             id: goToHomeButton
+            enabled: Chiaki.session && !Chiaki.session.viewOnly
             Layout.alignment: Qt.AlignCenter
             Layout.preferredHeight: 60
             text: qsTr("Go to Home Screen")
@@ -471,6 +472,16 @@ Item {
                 }
             }
 
+            Button {
+                anchors { left: parent.left; top: parent.top; margins: 16 }
+                enabled: Chiaki.session && Chiaki.session.connected
+                text: Chiaki.session && Chiaki.session.viewOnly ? qsTr("Resume control") : qsTr("Watch only")
+                onClicked: {
+                    Chiaki.window.toggleViewOnly()
+                    menuController.close()
+                }
+            }
+
             RowLayout {
                 anchors {
                     left: parent.left
@@ -540,7 +551,7 @@ Item {
                 text: qsTr("Mic")
                 padding: 10
                 checkable: true
-                enabled: Chiaki.session && Chiaki.session.connected
+                enabled: Chiaki.session && Chiaki.session.connected && !Chiaki.session.viewOnly
                 checked: Chiaki.session && !Chiaki.session.muted
                 onToggled: Chiaki.session.muted = !Chiaki.session.muted
                 KeyNavigation.left: volumeSlider

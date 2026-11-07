@@ -7825,4 +7825,13 @@ QObject *QmlMainWindow::focusObject() const
 void QmlMainWindow::showConnectionTools() { if(native_input) native_input->release(); showKbmConnectionTools(this, settings); }
 void QmlMainWindow::showUserManual() { if(native_input) native_input->release(); openKbmManual(); }
 void QmlMainWindow::showNativeControls() { if(native_input) native_input->showControls(); }
+void QmlMainWindow::toggleViewOnly()
+{
+    if (!session || !session->GetConnected())
+        return;
+    const bool enable = !session->IsViewOnly();
+    session->SetViewOnly(enable);
+    if (enable && native_input)
+        native_input->release();
+}
 QString QmlMainWindow::nativeInputStatus() const { return native_input ? native_input->statusText() : QString(); }

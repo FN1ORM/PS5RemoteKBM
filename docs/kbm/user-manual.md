@@ -276,6 +276,7 @@ Different metrics describe different stages. Do not call a short smooth interval
 | F2 | Controls, profiles and local input test |
 | F3 | Offline user manual |
 | F4 | Connection diagnostics and video presets |
+| Alt+F5 | Toggle Watch only on the current stream |
 | Ctrl+O, after releasing input | Stream menu |
 | W / A / S / D | Left stick |
 | Mouse movement | Right stick |
@@ -293,6 +294,15 @@ Control is deliberately unarmed until F1. Switching applications, losing focus, 
 F2 saves settings as you change them. To make a separate setup for a game, use **Save as** first, name it and change that profile. Input profiles are independent of the app's video/console configuration profiles. The local **Test capture** mode displays stick/button/trigger reports without sending them to a console. Escape exits capture.
 
 Click a binding and press a key to change it. Clear removes it. You can also assign one of five mouse buttons. Escape and F1–F4 are reserved. Left/right Shift and Ctrl share Qt's corresponding key binding.
+
+### Watch someone play on the PS5
+
+1. Start Remote Play using your usual paired PS5 profile and connection route.
+2. Press **Alt+F5** to switch to **Watch only**. You can also release mouse capture with **Esc**, open the stream menu with **Ctrl+O**, and select **Watch only**.
+3. Have the person at the PS5 press the **PS** button on their DualSense and assign it to a **different PS5 user profile** from the one your laptop uses. Keep the Remote Play profile signed in. They can play on their monitor while you watch and listen on the laptop, subject to the game's Remote Play support. [Sony's guide to local users during Remote Play](https://remoteplay.dl.playstation.net/remoteplay/lang/en/1100004.html)
+4. To return to Remote Play controls, press **Alt+F5** again or choose **Resume control** in the stream menu. Release any held gamepad buttons, triggers or touches and center the sticks. Press **F1** if you want keyboard and mouse capture.
+
+Watch only blocks gameplay input and mutes the laptop mic. You can turn the mic back on after resuming control. The toggle keeps the active video and audio session open. A fresh connection starts in normal Remote Play. If the local controller takes over the same PS5 profile, the console may end the Remote Play session. When you resume control, your input still belongs to the paired profile. Taking over the other person's character or save depends on the game and may require connecting under that profile.
 
 ## 16. Make aiming feel closer to a mouse
 

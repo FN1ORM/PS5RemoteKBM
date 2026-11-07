@@ -105,7 +105,7 @@ void KbmInput::release() {
 }
 bool KbmInput::capture(bool test) {
     release();
-    if(!test && (!session || !window->isActive() || window->visibility()==QWindow::Minimized)) return false;
+    if(!test && (!session || session->IsViewOnly() || !window->isActive() || window->visibility()==QWindow::Minimized)) return false;
 #ifdef Q_OS_WIN
     HWND target=reinterpret_cast<HWND>(test?preview->winId():window->winId());
     RAWINPUTDEVICE device{1,2,0,target};
@@ -171,6 +171,11 @@ bool KbmInput::eventFilter(QObject *object,QEvent *event) {
             binding=-1; if(rebuildBindings) rebuildBindings(); save(); return true;
         }
         if(object==window && down && !e->isAutoRepeat() && e->key()==Qt::Key_F2) {showControls(); return true;}
+        if (object == window && session && e->key() == Qt::Key_F5 && e->modifiers() == Qt::AltModifier) {
+            if (down && !e->isAutoRepeat())
+                QMetaObject::invokeMethod(window, "toggleViewOnly", Qt::QueuedConnection);
+            return true;
+        }
         if(object==window && down && !e->isAutoRepeat() && (e->key()==Qt::Key_F3 || e->key()==Qt::Key_F4)) {
             release(); QMetaObject::invokeMethod(window,e->key()==Qt::Key_F3?"showUserManual":"showConnectionTools",Qt::QueuedConnection); return true;
         }
