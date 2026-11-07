@@ -1325,6 +1325,11 @@ void StreamSession::SendFeedbackStateImpl(bool dpad_placeholder)
 	chiaki_controller_state_or(&state, &state, &native_kbm_state);
 	chiaki_controller_state_or(&state, &state, &touch_state);
 
+	// Let the stream menu's temporary input lock observe releases even
+	// when Watch only is suppressing the outgoing controller report.
+	if (input_block == 2 && !state.buttons)
+		input_block = 0;
+
 	if (remote_input_gate.Suppresses(state))
 	{
 		chiaki_controller_state_set_idle(&state);
@@ -1334,14 +1339,8 @@ void StreamSession::SendFeedbackStateImpl(bool dpad_placeholder)
 
 	if(input_block)
 	{
-		// Only unblock input after all buttons were released
-		if(input_block == 2 && !state.buttons)
-			input_block = 0;
-		else
-		{
-			chiaki_controller_state_set_idle(&state);
-			chiaki_controller_state_set_idle(&keyboard_state);
-		}
+		chiaki_controller_state_set_idle(&state);
+		chiaki_controller_state_set_idle(&keyboard_state);
 	}
 	if((dpad_touch_shortcut1 || dpad_touch_shortcut2 || dpad_touch_shortcut3 || dpad_touch_shortcut4) && (!dpad_touch_shortcut1 || (state.buttons & dpad_touch_shortcut1)) && (!dpad_touch_shortcut2 || (state.buttons & dpad_touch_shortcut2)) && (!dpad_touch_shortcut3 || (state.buttons & dpad_touch_shortcut3)) && (!dpad_touch_shortcut4 || (state.buttons & dpad_touch_shortcut4)))
 	{
