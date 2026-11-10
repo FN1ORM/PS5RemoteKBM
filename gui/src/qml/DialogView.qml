@@ -10,6 +10,7 @@ Item {
     property alias buttonText: okButton.text
     property alias buttonEnabled: okButton.enabled
     property alias buttonVisible: okButton.visible
+    property bool backEnabled: true
     property Item restoreFocusItem
     default property Item mainItem: null
 
@@ -20,7 +21,7 @@ Item {
         root.closeDialog();
     }
 
-    Keys.onEscapePressed: close()
+    Keys.onEscapePressed: if (backEnabled) close()
 
     Keys.onMenuPressed: {
         if (okButton.enabled)
@@ -59,6 +60,7 @@ Item {
             Button {
                 text: "Back"
                 Layout.preferredWidth: 64
+                enabled: dialog.backEnabled
                 flat: true
                 focusPolicy: Qt.NoFocus
                 onClicked: { dialog.rejected(); dialog.close(); }
