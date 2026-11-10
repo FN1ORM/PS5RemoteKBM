@@ -1057,12 +1057,9 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             session_info.hw_decoder = "vaapi";
         }
 #elif defined(Q_OS_WIN)
-        if(!use_opengl_renderer && availableDecoders.contains("vulkan"))
-        {
-            qCInfo(chiakiGui) << "Auto hw decoder selecting vulkan";
-            session_info.hw_decoder = "vulkan";
-        }
-        else if(prefer_cuda)
+        // Vulkan decoding is opt-in on Windows. A driver can advertise
+        // Vulkan Video and still crash when the first stream frames arrive.
+        if(prefer_cuda)
         {
             qCInfo(chiakiGui) << "Auto hw decoder selecting cuda";
             session_info.hw_decoder = "cuda";

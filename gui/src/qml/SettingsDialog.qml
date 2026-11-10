@@ -1013,7 +1013,7 @@ DialogView {
 
                     Label {
                         Layout.alignment: Qt.AlignRight
-                        text: qsTr("(Vulkan)")
+                        text: Qt.platform.os === "windows" ? qsTr("(OpenGL)") : qsTr("(Vulkan)")
                     }
 
                     Label {

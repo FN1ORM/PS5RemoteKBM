@@ -274,6 +274,17 @@ Settings::Settings(const QString &conf, QObject *parent) : QObject(parent),
 	MigrateSettings(&settings);
 	MigrateVideoProfile(&settings);
 	MigrateControllerMappings(&settings);
+#ifdef Q_OS_WIN
+	// Older profiles chose Vulkan by default. Apply the Windows compatibility
+	// default once per profile, while allowing later explicit choices.
+	if (!settings.value("settings/windows_renderer_migrated", false).toBool())
+	{
+		settings.setValue("settings/render_backend", QStringLiteral("opengl"));
+		settings.remove("settings/vulkan_startup_pending");
+		settings.setValue("settings/windows_renderer_migrated", true);
+		settings.sync();
+	}
+#endif
 	manual_hosts_id_next = 0;
 	settings.setValue("version", SETTINGS_VERSION);
 	LoadRegisteredHosts();
@@ -720,7 +731,11 @@ static const QMap<RenderBackend, QString> render_backend_values = {
 	{ RenderBackend::OpenGL, "opengl" },
 };
 
+#ifdef Q_OS_WIN
+static const RenderBackend render_backend_default = RenderBackend::OpenGL;
+#else
 static const RenderBackend render_backend_default = RenderBackend::Vulkan;
+#endif
 
 RenderBackend Settings::GetRenderBackend() const
 {
