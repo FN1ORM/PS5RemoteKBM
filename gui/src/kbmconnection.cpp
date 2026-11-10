@@ -7,6 +7,7 @@
 #include <QVBoxLayout>
 #include <QLabel>
 #include <QComboBox>
+#include <QCheckBox>
 #include <QPushButton>
 #include <QPlainTextEdit>
 #include <QProcess>
@@ -53,26 +54,46 @@ void showKbmConnectionTools(QWindow *owner, Settings *settings) {
         "Registered PSN entry: can work without the phone if PSN traversal succeeds.\n"
         "Rest Mode ends gameplay; network wake settings allow a later reconnection.");
     explain->setWordWrap(true); layout->addWidget(explain);
+    struct QualityPreset {
+        const char *label;
+        ChiakiVideoResolutionPreset resolution;
+        ChiakiVideoFPSPreset fps;
+        unsigned bitrate;
+    };
+    static const QualityPreset qualityPresets[] = {
+        {"Low bandwidth — 540p / 30 fps / H.264 / 2 Mbps", CHIAKI_VIDEO_RESOLUTION_PRESET_540p, CHIAKI_VIDEO_FPS_PRESET_30, 2000},
+        {"Stable connection — 720p / 30 fps / H.264 / 5 Mbps", CHIAKI_VIDEO_RESOLUTION_PRESET_720p, CHIAKI_VIDEO_FPS_PRESET_30, 5000},
+        {"Responsive — 720p / 60 fps / H.264 / 8 Mbps", CHIAKI_VIDEO_RESOLUTION_PRESET_720p, CHIAKI_VIDEO_FPS_PRESET_60, 8000},
+        {"Clearer picture — 1080p / 60 fps / H.264 / 15 Mbps", CHIAKI_VIDEO_RESOLUTION_PRESET_1080p, CHIAKI_VIDEO_FPS_PRESET_60, 15000},
+    };
     auto presets=new QComboBox;
-    presets->addItems({"Stable connection — 720p / 30 fps / H.264 / 5 Mbps", "Responsive — 720p / 60 fps / H.264 / 8 Mbps", "Clearer picture — 1080p / 60 fps / H.264 / 15 Mbps"});
+    for (const auto &preset : qualityPresets)
+        presets->addItem(QString::fromUtf8(preset.label));
     layout->addWidget(presets);
+    auto recoverPicture = new QCheckBox("Request a fresh keyframe when video recovery fails");
+    recoverPicture->setChecked(settings->GetIDROnFECFailureEnabled());
+    layout->addWidget(recoverPicture);
+    auto recoveryHelp = new QLabel("Try this if you see smeared blocks. The picture can pause briefly until the PS5 sends a clean frame.");
+    recoveryHelp->setWordWrap(true);
+    layout->addWidget(recoveryHelp);
     auto apply=new QPushButton("Apply quality for the next connection");layout->addWidget(apply);
     auto note=new QLabel("Both Local PS5 and Remote PS5 profiles will change: a VPN to a private PS5 IP can select Local. "
         "Lower bandwidth can help congestion; 30 fps is less responsive. No setting removes distance, Wi-Fi interference or ISP loss.");
     note->setWordWrap(true);layout->addWidget(note);
     QPointer<Settings> safeSettings(settings);
-    QObject::connect(apply,&QPushButton::clicked,dialog,[safeSettings,presets,note] {
-        if(!safeSettings) return;
-        const int index=presets->currentIndex();
-        auto resolution=index==2?CHIAKI_VIDEO_RESOLUTION_PRESET_1080p:CHIAKI_VIDEO_RESOLUTION_PRESET_720p;
-        auto fps=index==0?CHIAKI_VIDEO_FPS_PRESET_30:CHIAKI_VIDEO_FPS_PRESET_60;
-        unsigned bitrate=index==0?5000:index==1?8000:15000;
-        safeSettings->SetResolutionLocalPS5(resolution);safeSettings->SetResolutionRemotePS5(resolution);
-        safeSettings->SetFPSLocalPS5(fps);safeSettings->SetFPSRemotePS5(fps);
-        safeSettings->SetBitrateLocalPS5(bitrate);safeSettings->SetBitrateRemotePS5(bitrate);
+    QObject::connect(apply,&QPushButton::clicked,dialog,[safeSettings,presets,recoverPicture,note] {
+        if(!safeSettings || presets->currentIndex() < 0) return;
+        const auto &preset = qualityPresets[presets->currentIndex()];
+        safeSettings->SetResolutionLocalPS5(preset.resolution);
+        safeSettings->SetResolutionRemotePS5(preset.resolution);
+        safeSettings->SetFPSLocalPS5(preset.fps);
+        safeSettings->SetFPSRemotePS5(preset.fps);
+        safeSettings->SetBitrateLocalPS5(preset.bitrate);
+        safeSettings->SetBitrateRemotePS5(preset.bitrate);
         safeSettings->SetCodecLocalPS5(CHIAKI_CODEC_H264);safeSettings->SetCodecRemotePS5(CHIAKI_CODEC_H264);
+        safeSettings->SetIDROnFECFailureEnabled(recoverPicture->isChecked());
         safeSettings->Sync();
-        note->setText("Saved for BOTH PS5 profiles. Disconnect and reconnect to use it. Your registration and PSN sign-in are unchanged.");
+        note->setText("Saved for both PS5 profiles. Reconnect to apply the quality and picture recovery settings.");
     });
     auto peers=new QComboBox;peers->setPlaceholderText("Load Tailscale peers, then choose the Android subnet router");layout->addWidget(peers);
     auto refresh=new QPushButton("Load Tailscale peers (read only)");layout->addWidget(refresh);

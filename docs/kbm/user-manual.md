@@ -216,9 +216,12 @@ F4 opens **Connection and quality**. The presets apply to the next session and c
 
 | Preset | Resolution / frame rate | Target bitrate | Use |
 | --- | --- | --- | --- |
-| Stable connection | 720p / 30 fps, H.264 SDR | 5 Mbps | First test on a congested/limited path; less fluid motion |
+| Low bandwidth | 540p / 30 fps, H.264 SDR | 2 Mbps | Start here when higher settings stall or disconnect |
+| Stable connection | 720p / 30 fps, H.264 SDR | 5 Mbps | Try when the 2 Mbps stream stays steady |
 | Responsive | 720p / 60 fps, H.264 SDR | 8 Mbps | Prefer for aiming once the path sustains it |
 | Clearer picture | 1080p / 60 fps, H.264 SDR | 15 Mbps | Test after the lower presets are stable |
+
+If you see large smeared blocks, try **Request a fresh keyframe when video recovery fails** in F4. The app asks the PS5 for a fresh reference picture when it cannot reconstruct a damaged frame. The picture can pause while it waits. Compare it on and off at the same bitrate to see which behavior you prefer.
 
 These are starting points, not measured capacity recommendations for your current internet. The network also carries audio, input, protocol overhead and recovery data. Leave headroom rather than matching an internet speed test's peak throughput. The PS5 site's upload and the laptop site's download both matter.
 
