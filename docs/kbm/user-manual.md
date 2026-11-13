@@ -1,4 +1,4 @@
-# PS5 Remote KBM — User Manual
+# KeyStream — User Manual
 
 Personal Windows client based on chiaki-ng • November 2026 • Connection, controls and troubleshooting guide
 
@@ -155,7 +155,7 @@ If the code expires, obtain a fresh code and retry. Repeated network timeouts ne
 ### On your laptop
 
 1. Connect Tailscale to the same authorized tailnet.
-2. Open PS5 Remote KBM.
+2. Open KeyStream.
 3. Select the saved PS5 IP entry. You do not need another Link Device PIN.
 4. Wait for live video and audio.
 5. Click/focus the stream and press F1. Confirm the title/overlay says input is captured.
@@ -221,7 +221,7 @@ F4 opens **Connection and quality**. The presets apply to the next session and c
 | Responsive | 720p / 60 fps, H.264 SDR | 8 Mbps | Prefer for aiming once the path sustains it |
 | Clearer picture | 1080p / 60 fps, H.264 SDR | 15 Mbps | Test after the lower presets are stable |
 
-If you see large smeared blocks, try **Request a fresh keyframe when video recovery fails** in F4. The app asks the PS5 for a fresh reference picture when it cannot reconstruct a damaged frame. The picture can pause while it waits. Compare it on and off at the same bitrate to see which behavior you prefer.
+If you see large smeared blocks, try **Request a fresh keyframe when video recovery fails** in **Settings → Stream** or in F4. The app asks the PS5 for a fresh reference picture when it cannot reconstruct a damaged frame. The picture can pause while it waits. Compare it on and off at the same bitrate to see which behavior you prefer.
 
 These are starting points, not measured capacity recommendations for your current internet. The network also carries audio, input, protocol overhead and recovery data. Leave headroom rather than matching an internet speed test's peak throughput. The PS5 site's upload and the laptop site's download both matter.
 
@@ -280,7 +280,7 @@ Different metrics describe different stages. Do not call a short smooth interval
 | F3 | Offline user manual |
 | F4 | Connection diagnostics and video presets |
 | Alt+F5 | Toggle Watch only on the current stream |
-| Ctrl+O, after releasing input | Stream menu |
+| Ctrl+O | Open or close the stream menu, including during keyboard capture |
 | W / A / S / D | Left stick |
 | Mouse movement | Right stick |
 | Left / right mouse button | R2 / L2 |
@@ -301,7 +301,7 @@ Click a binding and press a key to change it. Clear removes it. You can also ass
 ### Watch someone play on the PS5
 
 1. Start Remote Play using your usual paired PS5 profile and connection route.
-2. Press **Alt+F5** to switch to **Watch only**. You can also release mouse capture with **Esc**, open the stream menu with **Ctrl+O**, and select **Watch only**.
+2. Press **Alt+F5** to switch to **Watch only**. You can also select **Watch** on the stream toolbar or press **Ctrl+O** and select **Watch only**.
 3. Have the person at the PS5 press the **PS** button on their DualSense and assign it to a **different PS5 user profile** from the one your laptop uses. Keep the Remote Play profile signed in. They can play on their monitor while you watch and listen on the laptop, subject to the game's Remote Play support. [Sony's guide to local users during Remote Play](https://remoteplay.dl.playstation.net/remoteplay/lang/en/1100004.html)
 4. To return to Remote Play controls, press **Alt+F5** again or choose **Resume control** in the stream menu. Release any held gamepad buttons, triggers or touches and center the sticks. Press **F1** if you want keyboard and mouse capture.
 
@@ -397,7 +397,7 @@ The optional mouse preset, new quality presets and new UI require comparison dur
 
 1. PS5 online, awake or wakeable.
 2. For your proven path: Android on PS5 Wi-Fi with Tailscale routing active; laptop Tailscale connected.
-3. Open PS5 Remote KBM and select saved PS5 IP. No new redirect URL or registration PIN needed.
+3. Open KeyStream and select Saved IP / VPN on the console card. No new redirect URL or registration PIN needed.
 4. Start with Responsive; use Stable if the picture stalls. Reconnect after changing a preset.
 5. F1 to capture, Escape to release, F2 controls, F3 this manual, F4 connection tools.
 6. Leave the console awake while playing. Keep the monitor off separately with suitable CEC settings.

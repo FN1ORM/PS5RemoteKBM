@@ -21,10 +21,10 @@ Item {
         root.closeDialog();
     }
 
-    Keys.onEscapePressed: if (backEnabled) close()
+    Keys.onEscapePressed: if (backEnabled) { rejected(); close() }
 
     Keys.onMenuPressed: {
-        if (okButton.enabled)
+        if (okButton.visible && okButton.enabled)
             okButton.clicked()
     }
 
@@ -53,16 +53,17 @@ Item {
     ToolBar {
         id: toolBar
         anchors { top: parent.top; left: parent.left; right: parent.right }
-        height: headerLabel.visible ? 88 : 64
+        implicitHeight: Math.max(58, headerRow.implicitHeight + 16)
+        background: Rectangle { color: "#202725" }
         RowLayout {
+            id: headerRow
             anchors { fill: parent; margins: 8 }
             spacing: 12
             Button {
-                text: "Back"
+                text: qsTr("Back")
                 Layout.preferredWidth: 64
                 enabled: dialog.backEnabled
                 flat: true
-                focusPolicy: Qt.NoFocus
                 onClicked: { dialog.rejected(); dialog.close(); }
             }
             ColumnLayout {
@@ -86,7 +87,6 @@ Item {
                 id: okButton
                 font.pixelSize: 16
                 padding: 12
-                focusPolicy: Qt.NoFocus
                 onClicked: dialog.accepted()
             }
         }

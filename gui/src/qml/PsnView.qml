@@ -12,7 +12,8 @@ Rectangle {
     property bool textVisible: true
     property bool registOnly: false
     property list<Item> restoreFocusItems
-    color: "black"
+    color: "#151918"
+    property bool detailsVisible: false
 
 
     function stop() {
@@ -38,7 +39,7 @@ Rectangle {
             item.forceActiveFocus(Qt.TabFocusReason);
     }
 
-    Keys.onEscapePressed: view.stop()
+    Keys.onEscapePressed: errorTitleLabel.visible ? view.finishFailure() : view.stop()
 
     Shortcut {
         sequence: "Ctrl+Q"
@@ -60,7 +61,8 @@ Rectangle {
     function showFailure(message) {
         if (cancelling) { root.showMainView(); return; }
         errorTitleLabel.text = qsTr("Connection could not be established");
-        errorTextLabel.text = message + qsTr("\n\nYour saved registration is unchanged. If PSN traversal keeps failing, connect Tailscale on both devices and use the saved PS5 IP entry. Open F4 for diagnostics or F3 for the manual.");
+        errorTextLabel.text = message;
+        detailsVisible = false;
         failTimer.stop();
         spinner.running = false;
     }
@@ -107,18 +109,31 @@ Rectangle {
                 font.bold: true
                 wrapMode: Text.Wrap
                 visible: text.length > 0
-                onVisibleChanged: if (visible) { textVisible = false; view.allowClose = false; view.grabInput(errorTitleLabel); }
+                onVisibleChanged: if (visible) { textVisible = false; view.allowClose = false; view.grabInput(returnButton); }
                 Keys.onReturnPressed: view.finishFailure()
                 Keys.onEscapePressed: view.finishFailure()
             }
             Label {
+                Layout.fillWidth: true
+                visible: errorTitleLabel.visible
+                wrapMode: Text.Wrap
+                text: qsTr("Try the Saved IP / VPN route if PSN cannot reach the console. Check that the VPN subnet router is online and advertising the console’s current IP.")
+            }
+            Button {
+                visible: errorTitleLabel.visible && errorTextLabel.text.length > 0
+                text: view.detailsVisible ? qsTr("Hide details") : qsTr("Details")
+                onClicked: view.detailsVisible = !view.detailsVisible
+            }
+            Label {
                 id: errorTextLabel
+                visible: view.detailsVisible
                 Layout.fillWidth: true
                 font.pixelSize: 16
                 wrapMode: Text.Wrap
                 textFormat: Text.PlainText
             }
             Button {
+                id: returnButton
                 visible: errorTitleLabel.visible
                 text: qsTr("Return to consoles")
                 onClicked: view.finishFailure()
@@ -184,7 +199,7 @@ Rectangle {
             switch(Chiaki.connectState)
             {
                 case Chiaki.PsnConnectState.LinkingConsole:
-                    infoLabel.text = registOnly ? qsTr("Registering PlayStation console with chiaki-ng ...") : qsTr("Linking chiaki-ng with PlayStation console ...")
+                    infoLabel.text = registOnly ? qsTr("Registering the console…") : qsTr("Linking to the console through PSN…")
                     view.allowClose = false
                     break
                 case Chiaki.PsnConnectState.RegisteringConsole:
@@ -195,7 +210,7 @@ Rectangle {
                     failTimer.restart()
                     break
                 case Chiaki.PsnConnectState.DataConnectionStart:
-                    infoLabel.text = qsTr("Console Linked ... Establishing data connection with console over PSN ...")
+                    infoLabel.text = qsTr("Console linked. Opening the stream connection…")
                     view.allowClose = true
                     break
                 case Chiaki.PsnConnectState.DataConnectionFinished:

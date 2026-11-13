@@ -91,14 +91,16 @@ DialogView {
             currentIndex: bar.currentIndex
             onCurrentIndexChanged: nextItemInFocusChain().forceActiveFocus(Qt.TabFocusReason)
 
-            Item {
+            ScrollView {
+                id: settingsScroll1
+                clip: true
+                contentWidth: Math.max(availableWidth, settingsGrid1.implicitWidth + 32)
+                contentHeight: settingsGrid1.implicitHeight + 32
                 // Config
                 GridLayout {
-                    anchors {
-                        top: parent.top
-                        horizontalCenter: parent.horizontalCenter
-                        topMargin: 20
-                    }
+                    id: settingsGrid1
+                    x: Math.max(16, (settingsScroll1.contentWidth - width) / 2)
+                    y: 16
                     columns: 2
                     rowSpacing: 10
                     columnSpacing: 20
@@ -173,14 +175,16 @@ DialogView {
                 }
             }
 
-            Item {
+            ScrollView {
+                id: settingsScroll2
+                clip: true
+                contentWidth: Math.max(availableWidth, settingsGrid2.implicitWidth + 32)
+                contentHeight: settingsGrid2.implicitHeight + 32
                 // Scaling
                 GridLayout {
-                    anchors {
-                        top: parent.top
-                        horizontalCenter: parent.horizontalCenter
-                        topMargin: 20
-                    }
+                    id: settingsGrid2
+                    x: Math.max(16, (settingsScroll2.contentWidth - width) / 2)
+                    y: 16
                     columns: 3
                     rowSpacing: 10
                     columnSpacing: 20
@@ -287,14 +291,16 @@ DialogView {
                 }
             }
 
-            Item {
+            ScrollView {
+                id: settingsScroll3
+                clip: true
+                contentWidth: Math.max(availableWidth, settingsGrid3.implicitWidth + 32)
+                contentHeight: settingsGrid3.implicitHeight + 32
                 // Deinterlace
                 GridLayout {
-                    anchors {
-                        top: parent.top
-                        horizontalCenter: parent.horizontalCenter
-                        topMargin: 20
-                    }
+                    id: settingsGrid3
+                    x: Math.max(16, (settingsScroll3.contentWidth - width) / 2)
+                    y: 16
                     columns: 3
                     rowSpacing: 10
                     columnSpacing: 20
@@ -378,14 +384,16 @@ DialogView {
                 }
             }
 
-            Item {
+            ScrollView {
+                id: settingsScroll4
+                clip: true
+                contentWidth: Math.max(availableWidth, settingsGrid4.implicitWidth + 32)
+                contentHeight: settingsGrid4.implicitHeight + 32
                 // Debanding
                 GridLayout {
-                    anchors {
-                        top: parent.top
-                        horizontalCenter: parent.horizontalCenter
-                        topMargin: 20
-                    }
+                    id: settingsGrid4
+                    x: Math.max(16, (settingsScroll4.contentWidth - width) / 2)
+                    y: 16
                     columns: 3
                     rowSpacing: 10
                     columnSpacing: 20
@@ -553,14 +561,16 @@ DialogView {
                 }
             }
 
-            Item {
+            ScrollView {
+                id: settingsScroll5
+                clip: true
+                contentWidth: Math.max(availableWidth, settingsGrid5.implicitWidth + 32)
+                contentHeight: settingsGrid5.implicitHeight + 32
                 // Sigmoidization
                 GridLayout {
-                    anchors {
-                        top: parent.top
-                        horizontalCenter: parent.horizontalCenter
-                        topMargin: 20
-                    }
+                    id: settingsGrid5
+                    x: Math.max(16, (settingsScroll5.contentWidth - width) / 2)
+                    y: 16
                     columns: 3
                     rowSpacing: 10
                     columnSpacing: 20
@@ -665,14 +675,16 @@ DialogView {
                 }
             }
 
-            Item {
+            ScrollView {
+                id: settingsScroll6
+                clip: true
+                contentWidth: Math.max(availableWidth, settingsGrid6.implicitWidth + 32)
+                contentHeight: settingsGrid6.implicitHeight + 32
                 // Color
                 GridLayout {
-                    anchors {
-                        top: parent.top
-                        horizontalCenter: parent.horizontalCenter
-                        topMargin: 20
-                    }
+                    id: settingsGrid6
+                    x: Math.max(16, (settingsScroll6.contentWidth - width) / 2)
+                    y: 16
                     columns: 3
                     rowSpacing: 10
                     columnSpacing: 20
@@ -901,14 +913,16 @@ DialogView {
                 }
             }
 
-            Item {
+            ScrollView {
+                id: settingsScroll7
+                clip: true
+                contentWidth: Math.max(availableWidth, settingsGrid7.implicitWidth + 32)
+                contentHeight: settingsGrid7.implicitHeight + 32
                 // Peak Detection
                 GridLayout {
-                    anchors {
-                        top: parent.top
-                        horizontalCenter: parent.horizontalCenter
-                        topMargin: 20
-                    }
+                    id: settingsGrid7
+                    x: Math.max(16, (settingsScroll7.contentWidth - width) / 2)
+                    y: 16
                     columns: 3
                     rowSpacing: 10
                     columnSpacing: 20
@@ -1125,14 +1139,16 @@ DialogView {
                 }
             }
 
-            Item {
+            ScrollView {
+                id: settingsScroll8
+                clip: true
+                contentWidth: Math.max(availableWidth, settingsGrid8.implicitWidth + 32)
+                contentHeight: settingsGrid8.implicitHeight + 32
                 // Color Mapping
                 GridLayout {
-                    anchors {
-                        top: parent.top
-                        horizontalCenter: parent.horizontalCenter
-                        topMargin: 20
-                    }
+                    id: settingsGrid8
+                    x: Math.max(16, (settingsScroll8.contentWidth - width) / 2)
+                    y: 16
                     columns: 3
                     rowSpacing: 10
                     columnSpacing: 20

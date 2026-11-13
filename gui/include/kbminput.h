@@ -41,7 +41,7 @@ public:
     void release();
     void showControls();
     int runLocalTest();
-    QString statusText() const;
+    bool isCaptured() const { return captured; }
     bool eventFilter(QObject *object,QEvent *event) override;
     bool nativeEventFilter(const QByteArray &type,void *message,qintptr *result) override;
 };

@@ -5,15 +5,15 @@
 inline void styleKbmDialog(QDialog *dialog) {
     dialog->setFont(QFont("Segoe UI",10));
     dialog->setStyleSheet(
-        "QDialog, QWidget { background: #101c2d; color: #e5edf7; }"
+        "QDialog, QWidget { background: #202725; color: #edf5f0; }"
         "QLabel { background: transparent; }"
-        "QPushButton { background: #20364f; border: 1px solid #365571; border-radius: 6px; padding: 7px 12px; }"
-        "QPushButton:hover { background: #2b4866; }"
-        "QPushButton:focus { border-color: #6bc4ff; }"
-        "QPushButton:disabled { color: #7f91a7; background: #18283a; }"
-        "QComboBox, QDoubleSpinBox, QLineEdit, QPlainTextEdit { background: #0b1422; border: 1px solid #365571; padding: 5px; selection-background-color: #24618c; }"
+        "QPushButton { background: #293531; border: 1px solid #485851; border-radius: 6px; padding: 7px 12px; }"
+        "QPushButton:hover { background: #374940; }"
+        "QPushButton:focus { border-color: #78dfb6; }"
+        "QPushButton:disabled { color: #9fafa6; background: #202725; }"
+        "QComboBox, QDoubleSpinBox, QLineEdit, QPlainTextEdit { background: #151918; border: 1px solid #485851; padding: 5px; selection-background-color: #356650; }"
         "QScrollArea { border: 0; }"
-        "QScrollBar:vertical { background: #101c2d; width: 12px; }"
-        "QScrollBar::handle:vertical { background: #426383; min-height: 24px; border-radius: 5px; }"
+        "QScrollBar:vertical { background: #202725; width: 12px; }"
+        "QScrollBar::handle:vertical { background: #5b7568; min-height: 24px; border-radius: 5px; }"
     );
 }

@@ -1,3 +1,4 @@
+#include <iterator>
 #include "qmlbackend.h"
 #include "qmlsettings.h"
 #include "qmlmainwindow.h"
@@ -778,9 +779,7 @@ void QmlBackend::setConnectState(PsnConnectState connect_state)
 QVariantList QmlBackend::hosts() const
 {
     QVariantList out;
-    QList<QString> discovered_nicknames;
     QList<ManualHost> discovered_manual_hosts;
-    size_t registered_discovered_ps4s = 0;
     auto manual_hosts = settings->GetManualHosts();
     for (const auto &host : discovery_manager.GetHosts()) {
         QVariantMap m;
@@ -833,10 +832,7 @@ QVariantList QmlBackend::hosts() const
         m["titleId"] = host.running_app_titleid;
         m["registered"] = registered;
         m["display"] = hidden ? false : true;
-        discovered_nicknames.append(host.host_name);
         out.append(m);
-        if(!host.ps5 && registered)
-            registered_discovered_ps4s++;
     }
     for (const auto &host : settings->GetManualHosts()) {
         QVariantMap m;
@@ -845,6 +841,7 @@ QVariantList QmlBackend::hosts() const
         m["name"] = host.GetHost();
         m["duid"] = "";
         m["address"] = host.GetHost();
+        m["manualId"] = host.GetID();
         m["state"] = "unknown";
         m["registered"] = false;
         m["display"] = discovered_manual_hosts.contains(host) ? false : true;
@@ -857,31 +854,18 @@ QVariantList QmlBackend::hosts() const
         }
         out.append(m);
     }
-    if(registered_discovered_ps4s >= settings->GetPS4RegisteredHostsRegistered())
-        discovered_nicknames.append(QString("Main PS4 Console"));
     for (const auto &host : psn_hosts) {
         QVariantMap m;
-        // Only list PSN remote hosts that aren't discovered locally
-        bool discovered = false;
-        for (int i = 0; i < discovered_nicknames.size(); ++i)
-        {
-            if (discovered_nicknames.at(i) == host.GetName())
-                discovered = true;
-        }
-        for (int i = 0; i < waking_sleeping_nicknames.size(); ++i)
-        {
-            if (waking_sleeping_nicknames.at(i) == host.GetName())
-                discovered = true;
-        }
-        if(discovered)
-            continue;
         m["discovered"] = false;
         m["manual"] = false;
-        m["display"] = true;
+        m["display"] = !waking_sleeping_nicknames.contains(host.GetName());
         m["name"] = host.GetName();
         m["duid"] = host.GetDuid();
         m["address"] = "";
-        m["registered"] = settings->GetNicknameRegisteredHostRegistered(host.GetName());
+        const bool registered = settings->GetNicknameRegisteredHostRegistered(host.GetName());
+        m["registered"] = registered;
+        if (registered)
+            m["mac"] = settings->GetNicknameRegisteredHost(host.GetName()).GetServerMAC().ToString();
         m["ps5"] = host.IsPS5();
         out.append(m);
     }
@@ -1799,34 +1783,15 @@ QmlBackend::DisplayServer QmlBackend::displayServerAt(int index) const
     {
         DisplayServer server;
 
-        QMapIterator<QString, PsnHost> i(psn_hosts);
-        size_t j = 0;
-        while (i.hasNext())
-        {
-            i.next();
-            PsnHost psn_host = i.value();
-            bool hidden = false;
-            for (const auto &host : discovery_manager.GetHosts())
-            {
-                if(host.host_name == psn_host.GetName())
-                    hidden = true;
-            }
-            if(hidden)
-                continue;
-            if(j == index)
-            {
-                server.valid = true;
-                server.discovered = false;
-                server.psn_host = std::move(psn_host);
-                server.duid = i.key();
-                server.registered = settings->GetNicknameRegisteredHostRegistered(server.psn_host.GetName());
-                if(server.registered)
-                    server.registered_host = settings->GetNicknameRegisteredHost(server.psn_host.GetName());
-                return server;
-            }
-            j++;
-        }
-        return {};
+        auto it = psn_hosts.cbegin();
+        std::advance(it, index);
+        server.valid = true;
+        server.psn_host = it.value();
+        server.duid = it.key();
+        server.registered = settings->GetNicknameRegisteredHostRegistered(server.psn_host.GetName());
+        if (server.registered)
+            server.registered_host = settings->GetNicknameRegisteredHost(server.psn_host.GetName());
+        return server;
     }
     return {};
 }

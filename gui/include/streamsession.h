@@ -156,6 +156,7 @@ class StreamSession : public QObject
 	Q_OBJECT
 	Q_PROPERTY(QString host READ GetHost CONSTANT)
 	Q_PROPERTY(bool connected READ GetConnected NOTIFY ConnectedChanged)
+	Q_PROPERTY(double initialRoundTripMs READ GetInitialRoundTripMs NOTIFY ConnectedChanged)
 	Q_PROPERTY(double measuredBitrate READ GetMeasuredBitrate NOTIFY MeasuredBitrateChanged)
 	Q_PROPERTY(double averagePacketLoss READ GetAveragePacketLoss NOTIFY AveragePacketLossChanged)
 	Q_PROPERTY(bool muted READ GetMuted WRITE SetMuted NOTIFY MutedChanged)
@@ -353,6 +354,7 @@ class StreamSession : public QObject
 		void GoHome();
 		QString GetHost() { return host; }
 		bool GetConnected() { return connected; }
+		double GetInitialRoundTripMs() const { return connected && session.rtt_measured ? session.rtt_us / 1000.0 : -1; }
 		double GetMeasuredBitrate()	{ return measured_bitrate; }
 		double GetAveragePacketLoss()	{ return average_packet_loss; }
 		quint64 DecoderFlushGeneration() const { return decoder_flush_generation.loadRelaxed(); }

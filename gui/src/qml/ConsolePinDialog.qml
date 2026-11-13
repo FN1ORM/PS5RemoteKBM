@@ -9,33 +9,36 @@ import "controls" as C
 
 DialogView {
     property var consoleIndex
-    title: qsTr("Set console pin")
+    property var resolveIndex
+    title: qsTr("Set console login PIN")
     buttonText: qsTr("Set")
     buttonEnabled: pin.acceptableInput
     onAccepted: {
-        Chiaki.setConsolePin(consoleIndex, pin.text.trim());
+        const index = resolveIndex ? resolveIndex() : consoleIndex;
+        if (index >= 0) Chiaki.setConsolePin(index, pin.text.trim());
         stack.pop();
     }
     Item {
         GridLayout {
             anchors {
                 top: parent.top
-                horizontalCenter: parent.horizontalCenter
-                topMargin: 20
+                left: parent.left
+                right: parent.right
+                margins: 20
             }
-            columns: 2
+            columns: width < 500 ? 1 : 2
             rowSpacing: 10
             columnSpacing: 20
                         Label {
                             Layout.alignment: Qt.AlignRight
-                            text: qsTr("Remote Play PIN (4 digits):")
+                            text: qsTr("Console login PIN (4 digits)")
                         }
 
                         TextField {
                             id: pin
                             validator: RegularExpressionValidator { regularExpression: /[0-9]{4}/ }
-                            echoMode: Chiaki.settings.streamerMode ? TextInput.Password : TextInput.Normal
-                            Layout.preferredWidth: 400
+                            echoMode: TextInput.Password
+                            Layout.fillWidth: true
                         }
         }
 

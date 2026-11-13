@@ -9,49 +9,17 @@ Item {
     id: root
     property list<Item> restoreFocusItems
     property bool initialAsk: false
+    Shortcut { sequence: "F2"; onActivated: Chiaki.window.showNativeControls() }
     Shortcut { sequence: "F3"; onActivated: Chiaki.window.showUserManual() }
     Shortcut { sequence: "F4"; onActivated: Chiaki.window.showConnectionTools() }
-    RowLayout {
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: parent.bottom
-        anchors.margins: 8
-        z: 100
-        visible: !Chiaki.session
-        Button { text: qsTr("Controls · F2"); onClicked: Chiaki.window.showNativeControls() }
-        Button { text: qsTr("Connection · F4"); onClicked: Chiaki.window.showConnectionTools() }
-        Button { text: qsTr("Manual · F3"); onClicked: Chiaki.window.showUserManual() }
-    }
-    Label {
-        id: nativeInputLabel
-        property string captureStatus: qsTr("F1 capture · F2 controls")
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.margins: 8
-        z: 100
-        visible: Chiaki.session && Chiaki.window.hasVideo
-        color: "white"
-        padding: 6
-        background: Rectangle { color: "#aa101820"; radius: 4 }
-        width: Math.min(implicitWidth, parent.width - 16)
-        wrapMode: Text.Wrap
-        font.pixelSize: 14
-        text: Chiaki.session && Chiaki.session.viewOnly
-              ? qsTr("Watch only · Alt+F5 to resume control")
-              : captureStatus + qsTr(" · Alt+F5 watch only")
-        Timer {
-            interval: 100
-            running: nativeInputLabel.visible
-            repeat: true
-            onTriggered: nativeInputLabel.captureStatus = Chiaki.window.nativeInputStatus()
-        }
-    }
-    readonly property bool preferSeparateStreamSettingsWindows: Chiaki.window.runtimeRendererBackend === 1 && Chiaki.session
-    property bool useSeparateStreamSettingsWindows: false
+    readonly property bool separateStreamPanels: Chiaki.window.runtimeRendererBackend === 1
+    property string streamPanel: ""
+    readonly property bool streamPanelOpen: streamPanel !== ""
     Material.theme: Material.Dark
-    Material.accent: "#38b6ff"
-    Material.primary: "#142238"
-    Material.background: "#0c1320"
-    Material.foreground: "#e5edf7"
+    Material.accent: "#78dfb6"
+    Material.primary: "#202725"
+    Material.background: "#151918"
+    Material.foreground: "#edf5f0"
 
     function controllerButton(name) {
         let type = "deck";
@@ -84,94 +52,40 @@ Item {
             showRegistDialog(host, ps5);
     }
 
-    function openDisplaySettings() {
-        useSeparateStreamSettingsWindows = preferSeparateStreamSettingsWindows;
-        const loader = useSeparateStreamSettingsWindows ? separateDisplaySettingsLoader : displaySettingsLoader;
-        if(loader.status == Loader.Ready)
-        {
-            if(placeboSettingsRect.opacity || displaySettingsRect.opacity || colorMappingSettingsRect.opacity)
-                closeDialog();
-            displaySettingsRect.opacity = 0.8;
-            grabInput(loader);
-            if (!loader.item.restoreFocusItem) {
-                let item = loader.item.mainItem.nextItemInFocusChain();
-                if (item)
-                    item.forceActiveFocus(Qt.TabFocusReason);
-            } else {
-                loader.item.restoreFocusItem.forceActiveFocus(Qt.TabFocusReason);
-                loader.item.restoreFocusItem = null;
-            }
-        }
-    }
-    function openPlaceboSettings() {
-        if (!displaySettingsRect.opacity && !placeboSettingsRect.opacity && !colorMappingSettingsRect.opacity)
-            useSeparateStreamSettingsWindows = preferSeparateStreamSettingsWindows;
-        const loader = useSeparateStreamSettingsWindows ? separatePlaceboSettingsLoader : placeboSettingsLoader;
-        if(loader.status == Loader.Ready)
-        {
-            if(placeboSettingsRect.opacity || displaySettingsRect.opacity || colorMappingSettingsRect.opacity)
-                closeDialog();
-            placeboSettingsRect.opacity = 0.8;
-            grabInput(loader);
-            if (!loader.item.restoreFocusItem) {
-                let item = loader.item.mainItem.nextItemInFocusChain();
-                if (item)
-                    item.forceActiveFocus(Qt.TabFocusReason);
-            } else {
-                loader.item.restoreFocusItem.forceActiveFocus(Qt.TabFocusReason);
-                loader.item.restoreFocusItem = null;
-            }
-        }
+    function openStreamPanel(panel) {
+        const first = !streamPanelOpen;
+        streamPanel = panel;
+        if (first)
+            grabInput(null);
+        if (separateStreamPanels)
+            streamSettingsWindow.requestActivate();
+        Chiaki.window.requestOverlayUpdate();
     }
 
+    function dismissStreamPanel() {
+        if (!streamPanelOpen)
+            return;
+        streamPanel = "";
+        releaseInput();
+        Chiaki.window.requestOverlayUpdate();
+        Chiaki.window.requestActivate();
+    }
+
+    function openDisplaySettings() { openStreamPanel("display"); }
+    function openPlaceboSettings() { openStreamPanel("renderer"); }
+
     function closeDialog() {
-       if(displaySettingsRect.opacity) {
-        displaySettingsRect.opacity = 0.0;
-        const loader = useSeparateStreamSettingsWindows ? separateDisplaySettingsLoader : displaySettingsLoader;
-        loader.item.restoreFocusItem = Window.window.activeFocusItem;
-        releaseInput();
-        useSeparateStreamSettingsWindows = false;
-       }
-       else if(placeboSettingsRect.opacity) {
-        placeboSettingsRect.opacity = 0.0;
-        const loader = useSeparateStreamSettingsWindows ? separatePlaceboSettingsLoader : placeboSettingsLoader;
-        loader.item.restoreFocusItem = Window.window.activeFocusItem;
-        releaseInput();
-        useSeparateStreamSettingsWindows = false;
-       }
-       else if(colorMappingSettingsRect.opacity) {
-        releaseInput();
-        colorMappingSettingsRect.opacity = 0.0;
-        const loader = useSeparateStreamSettingsWindows ? separateColorMappingSettingsLoader : colorMappingSettingsLoader;
-        loader.item.restoreFocusItem = Window.window.activeFocusItem;
-        root.openPlaceboSettings();
-       }
-       else
-        stack.pop();
+        if (streamPanel === "color")
+            openPlaceboSettings();
+        else if (streamPanelOpen)
+            dismissStreamPanel();
+        else if (stack.depth > 1)
+            stack.pop();
     }
 
     function showMainView() {
-        if(displaySettingsRect.opacity) {
-            displaySettingsRect.opacity = 0.0;
-            const loader = useSeparateStreamSettingsWindows ? separateDisplaySettingsLoader : displaySettingsLoader;
-            loader.item.restoreFocusItem = Window.window.activeFocusItem;
-            releaseInput();
-            useSeparateStreamSettingsWindows = false;
-        }
-        else if(placeboSettingsRect.opacity) {
-            placeboSettingsRect.opacity = 0.0;
-            const loader = useSeparateStreamSettingsWindows ? separatePlaceboSettingsLoader : placeboSettingsLoader;
-            loader.item.restoreFocusItem = Window.window.activeFocusItem;
-            releaseInput();
-            useSeparateStreamSettingsWindows = false;
-        }
-        else if(colorMappingSettingsRect.opacity) {
-            colorMappingSettingsRect.opacity = 0.0;
-            const loader = useSeparateStreamSettingsWindows ? separateColorMappingSettingsLoader : colorMappingSettingsLoader;
-            loader.item.restoreFocusItem = Window.window.activeFocusItem;
-            releaseInput();
-            useSeparateStreamSettingsWindows = false;
-        }
+        dismissStreamPanel();
+        if (confirmDialog.visible) confirmDialog.close();
         if (stack.depth > 1)
             stack.pop(stack.get(0));
         else
@@ -179,10 +93,14 @@ Item {
     }
 
     function showStreamView() {
-        stack.replace(stack.get(0), streamViewComponent);
+        if (confirmDialog.visible) confirmDialog.close();
+        if (infoDialog.visible) infoDialog.close();
+        if (remindDialog.visible) remindDialog.close();
+        stack.replace(stack.get(0), streamViewComponent, {}, StackView.Immediate);
     }
 
     function showPsnView() {
+        if (confirmDialog.visible) confirmDialog.close();
         stack.replace(stack.get(0), psnViewComponent, {}, StackView.Immediate)
     }
 
@@ -208,7 +126,7 @@ Item {
 
     function showRendererFallbackDialog(reason) {
         showInfoDialog(qsTr("Renderer Fallback"),
-                       qsTr("Vulkan renderer is unavailable and chiaki-ng switched to OpenGL.\n\nReason: %1").arg(reason));
+                       qsTr("Vulkan renderer is unavailable. KeyStream switched to OpenGL.\n\nReason: %1").arg(reason));
     }
 
     function showRemindDialog(title, text, remotePlay, callback) {
@@ -225,8 +143,8 @@ Item {
         stack.push(registDialogComponent, {host: host, ps5: ps5});
     }
 
-    function showSettingsDialog() {
-        stack.push(settingsDialogComponent);
+    function showSettingsDialog(tab = 0) {
+        stack.push(settingsDialogComponent, { initialTab: tab });
     }
 
     function showDisplaySettingsDialog() {
@@ -238,25 +156,8 @@ Item {
     }
 
     function showPlaceboColorMappingDialog() {
-        if(placeboSettingsRect.opacity)
-        {
-            root.closeDialog();
-            useSeparateStreamSettingsWindows = preferSeparateStreamSettingsWindows;
-            const loader = useSeparateStreamSettingsWindows ? separateColorMappingSettingsLoader : colorMappingSettingsLoader;
-            if(loader.status == Loader.Ready)
-            {
-                grabInput(loader);
-                colorMappingSettingsRect.opacity = 0.8;
-                if (!loader.item.restoreFocusItem) {
-                    let item = loader.item.mainItem.nextItemInFocusChain();
-                    if (item)
-                        item.forceActiveFocus(Qt.TabFocusReason);
-                } else {
-                    loader.item.restoreFocusItem.forceActiveFocus(Qt.TabFocusReason);
-                    loader.item.restoreFocusItem = null;
-                }
-            }
-        }
+        if (streamPanelOpen)
+            openStreamPanel("color");
         else
             stack.push(placeboColorMappingDialogComponent);
     }
@@ -265,8 +166,8 @@ Item {
         stack.push(profileDialogComponent)
     }
 
-    function showConsolePinDialog(consoleIndex) {
-        stack.push(consolePinDialogComponent, {consoleIndex: consoleIndex});
+    function showConsolePinDialog(consoleIndex, resolveIndex = null) {
+        stack.push(consolePinDialogComponent, {consoleIndex: consoleIndex, resolveIndex: resolveIndex});
     }
 
     function showSteamShortcutDialog(fromReminder) {
@@ -319,181 +220,74 @@ Item {
         }
     }
 
-    Rectangle {
-        id: placeboSettingsRect
-        opacity: 0.0
-        visible: opacity && !useSeparateStreamSettingsWindows
-        height: Math.min(650, root.height)
-        width: Math.min(1200, root.width)
-        anchors.top: parent.top
-        anchors.horizontalCenter: parent.horizontalCenter
-        color: Material.background
-        Loader {
-            anchors.fill: parent
-            id: placeboSettingsLoader
-            sourceComponent: placeboSettingsDialogComponent
-        }
-    }
-    Rectangle {
-        id: displaySettingsRect
-        opacity: 0.0
-        anchors.top: parent.top
-        anchors.horizontalCenter: parent.horizontalCenter
-        height: Math.min(500, root.height)
-        width: Math.min(1200, root.width)
-        visible: opacity && !useSeparateStreamSettingsWindows
-        color: Material.background
-        Loader {
-            anchors.fill: parent
-            id: displaySettingsLoader
-            sourceComponent: displaySettingsDialogComponent
-        }
-    }
-    Rectangle {
-        id: colorMappingSettingsRect
-        anchors.top: parent.top
-        anchors.horizontalCenter: parent.horizontalCenter
-        opacity: 0.0
-        height: 600
-        width: Math.min(1200, root.width)
-        visible: opacity && !useSeparateStreamSettingsWindows
-        color: Material.background
-        Loader {
-            anchors.fill: parent
-            id: colorMappingSettingsLoader
-            sourceComponent: placeboColorMappingDialogComponent
+    function streamPanelComponent() {
+        switch (streamPanel) {
+        case "display": return displaySettingsDialogComponent;
+        case "renderer": return placeboSettingsDialogComponent;
+        case "color": return placeboColorMappingDialogComponent;
+        default: return null;
         }
     }
 
-    Window {
-        id: separateDisplaySettingsWindow
-        visible: useSeparateStreamSettingsWindows && displaySettingsRect.opacity > 0.0
-        transientParent: Chiaki.window
-        flags: Qt.Dialog | Qt.FramelessWindowHint
-        color: Material.background
-        modality: Qt.NonModal
-        x: Math.round(root.mapToGlobal(0, 0).x)
-        y: Math.round(root.mapToGlobal(0, 0).y)
-        width: Math.round(root.width)
-        height: separateDisplaySettingsLoader.item ? Math.min(Math.round(root.height), Math.round(separateDisplaySettingsLoader.item.gridHeight + 140)) : 500
-        onVisibleChanged: if (visible) requestActivate()
-
-        Shortcut {
-            sequence: "Ctrl+O"
-            onActivated: root.closeDialog()
-        }
-
-        Shortcut {
-            sequence: StandardKey.Cancel
-            onActivated: root.closeDialog()
-        }
-
-        Loader {
-            anchors.fill: parent
-            id: separateDisplaySettingsLoader
-            sourceComponent: displaySettingsDialogComponent
-        }
-    }
-
-    Window {
-        id: separatePlaceboSettingsWindow
-        visible: useSeparateStreamSettingsWindows && placeboSettingsRect.opacity > 0.0
-        transientParent: Chiaki.window
-        flags: Qt.Dialog | Qt.FramelessWindowHint
-        color: Material.background
-        modality: Qt.NonModal
-        x: Math.round(root.mapToGlobal(0, 0).x)
-        y: Math.round(root.mapToGlobal(0, 0).y)
-        width: Math.round(root.width)
-        height: Math.min(Math.round(root.height), 650)
-        onVisibleChanged: if (visible) requestActivate()
-
-        Shortcut {
-            sequence: "Ctrl+O"
-            onActivated: root.closeDialog()
-        }
-
-        Shortcut {
-            sequence: StandardKey.Cancel
-            onActivated: root.closeDialog()
-        }
-
-        Loader {
-            anchors.fill: parent
-            id: separatePlaceboSettingsLoader
-            sourceComponent: placeboSettingsDialogComponent
-        }
-    }
-
-    Window {
-        id: separateColorMappingSettingsWindow
-        visible: useSeparateStreamSettingsWindows && colorMappingSettingsRect.opacity > 0.0
-        transientParent: Chiaki.window
-        flags: Qt.Dialog | Qt.FramelessWindowHint
-        color: Material.background
-        modality: Qt.NonModal
-        x: Math.round(root.mapToGlobal(0, 0).x)
-        y: Math.round(root.mapToGlobal(0, 0).y)
-        width: Math.round(root.width)
-        height: Math.min(Math.round(root.height), 600)
-        onVisibleChanged: if (visible) requestActivate()
-
-        Shortcut {
-            sequence: "Ctrl+O"
-            onActivated: root.closeDialog()
-        }
-
-        Shortcut {
-            sequence: StandardKey.Cancel
-            onActivated: root.closeDialog()
-        }
-
-        Loader {
-            anchors.fill: parent
-            id: separateColorMappingSettingsLoader
-            sourceComponent: placeboColorMappingDialogComponent
-        }
-    }
-    Rectangle {
-        anchors {
-            bottom: parent.bottom
-            horizontalCenter: parent.horizontalCenter
-            bottomMargin: 30
-        }
-        color: Material.accent
-        width: Math.max(0, Math.min(root.width - 32, 680))
-        height: Math.min(root.height - 32, errorLayout.height + 20)
-        radius: 8
-        opacity: errorHideTimer.running ? 0.8 : 0.0
-
-        Behavior on opacity { NumberAnimation { duration: 500 } }
-
-        ColumnLayout {
-            id: errorLayout
-            anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 16 }
-
-            Label {
-                id: errorTitleLabel
-                Layout.fillWidth: true
-                wrapMode: Text.Wrap
-                Layout.alignment: Qt.AlignCenter
-                font.bold: true
-                font.pixelSize: 24
-            }
-
-            Label {
-                id: errorTextLabel
-                Layout.fillWidth: true
-                wrapMode: Text.Wrap
-                Layout.alignment: Qt.AlignCenter
-                horizontalAlignment: Text.AlignHCenter
-                font.pixelSize: 16
+    Component {
+        id: streamPanelContent
+        Rectangle {
+            color: "#151918"
+            border.color: "#485851"
+            clip: true
+            // Prevent clicks on the panel background from reaching the stream.
+            MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons }
+            Loader {
+                anchors.fill: parent
+                anchors.margins: 1
+                sourceComponent: root.streamPanelComponent()
+                onLoaded: {
+                    const first = item.mainItem ? item.mainItem.nextItemInFocusChain() : null;
+                    if (first) first.forceActiveFocus(Qt.TabFocusReason);
+                }
             }
         }
+    }
 
-        Timer {
-            id: errorHideTimer
-            interval: 2000
+    Loader {
+        anchors.centerIn: parent
+        z: 30
+        width: Math.max(0, Math.min(1160, root.width - 32))
+        height: Math.max(0, Math.min(700, root.height - 32))
+        active: root.streamPanelOpen && !root.separateStreamPanels
+        sourceComponent: streamPanelContent
+    }
+
+    Window {
+        id: streamSettingsWindow
+        transientParent: Chiaki.window
+        visible: root.streamPanelOpen && root.separateStreamPanels
+        flags: Qt.Tool | Qt.FramelessWindowHint
+        x: Chiaki.window.x + Math.round((root.width - width) / 2)
+        y: Chiaki.window.y + Math.round((root.height - height) / 2)
+        width: Math.max(1, Math.min(1160, root.width - 32))
+        height: Math.max(1, Math.min(700, root.height - 32))
+        Material.theme: Material.Dark
+        Material.accent: "#78dfb6"
+        Material.foreground: "#edf5f0"
+        Material.background: "#151918"
+        Material.primary: "#202725"
+        onClosing: root.dismissStreamPanel()
+        Shortcut {
+            sequence: "Ctrl+O"
+            enabled: streamSettingsWindow.visible
+            autoRepeat: false
+            onActivated: root.dismissStreamPanel()
+        }
+        Shortcut {
+            sequence: StandardKey.Cancel
+            enabled: streamSettingsWindow.visible
+            onActivated: root.closeDialog()
+        }
+        Loader {
+            anchors.fill: parent
+            active: streamSettingsWindow.visible
+            sourceComponent: streamPanelContent
         }
     }
 
@@ -530,9 +324,7 @@ Item {
         }
 
         function onError(title, text) {
-            errorTitleLabel.text = title;
-            errorTextLabel.text = text;
-            errorHideTimer.start();
+            root.showInfoDialog(title, text);
         }
 
         function onRegistDialogRequested(host, ps5, duid) {

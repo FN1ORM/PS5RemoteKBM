@@ -41,7 +41,7 @@ void showKbmConnectionTools(QWindow *owner, Settings *settings) {
     auto dialog=new QDialog;
     styleKbmDialog(dialog);
     dialog->setAttribute(Qt::WA_DeleteOnClose);
-    dialog->setWindowTitle("PS5 Remote KBM — Connection and quality");
+    dialog->setWindowTitle("KeyStream — Connection and quality");
     dialog->setModal(true);
     dialog->resize(680,620);
     if(owner->screen()) dialog->resize(dialog->size().boundedTo(owner->screen()->availableGeometry().size()-QSize(40,60)));

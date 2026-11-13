@@ -16,13 +16,15 @@ DialogView {
     property bool registered: false
     property bool searchTimedOut: false
     property string registrationLog: ""
-    title: qsTr("Register Console")
+    title: qsTr("Register console")
+    header: qsTr("Pair KeyStream with a PlayStation user")
+    property bool detailsVisible: false
     buttonText: showingResult ? (registering ? qsTr("Registering…") : registered ? qsTr("Done") : qsTr("Try again")) : qsTr("Register")
     backEnabled: !registering
     buttonEnabled: showingResult ? !registering : hostField.text.trim() && pin.acceptableInput && cpin.acceptableInput
         && (ps4_7.checked ? onlineId.text.trim() : accountId.text.trim())
     StackView.onActivated: {
-        if(Chiaki.settings.psnAccountId)
+        if (!accountId.text && Chiaki.settings.psnAccountId)
             accountId.text = Chiaki.settings.psnAccountId
     }
     onAccepted: {
@@ -41,6 +43,7 @@ DialogView {
         const address = hostField.text.trim()
         const psnId = ps4_7.checked ? onlineId.text.trim() : accountId.text.trim()
         registrationLog = ""
+        detailsVisible = false
         searchTimedOut = false
         registered = false
         showingResult = true
@@ -90,135 +93,11 @@ DialogView {
 
             Label {
                 Layout.alignment: formGrid.columns === 1 ? Qt.AlignLeft : Qt.AlignRight
-                text: qsTr("Host:")
-            }
-
-            C.TextField {
-                id: hostField
-                echoMode: Chiaki.settings.streamerMode ? TextInput.Password : TextInput.Normal
-                Layout.fillWidth: true
-                Layout.preferredWidth: 400
-                firstInFocusChain: true
-            }
-
-            Label {
-                Layout.alignment: formGrid.columns === 1 ? Qt.AlignLeft : Qt.AlignRight
-                text: qsTr("PSN Online-ID:")
-                visible: onlineId.visible
-            }
-
-            C.TextField {
-                id: onlineId
-                echoMode: Chiaki.settings.streamerMode ? TextInput.Password : TextInput.Normal
-                visible: ps4_7.checked
-                placeholderText: qsTr("username, case-sensitive")
-                Layout.fillWidth: true
-                Layout.preferredWidth: 400
-            }
-
-            Label {
-                Layout.alignment: formGrid.columns === 1 ? Qt.AlignLeft : Qt.AlignRight
-                text: qsTr("PSN Account-ID:")
-                visible: accountId.visible
-            }
-
-            C.TextField {
-                id: accountId
-                visible: !ps4_7.checked
-                echoMode: Chiaki.settings.streamerMode ? TextInput.Password : TextInput.Normal
-                placeholderText: qsTr("base64")
-                Layout.fillWidth: true
-                Layout.preferredWidth: 400 - loginButton.width - 10
-                KeyNavigation.priority: {
-                    if(readOnly)
-                        KeyNavigation.BeforeItem
-                    else
-                        KeyNavigation.AfterItem
-                }
-                KeyNavigation.up: hostField
-                KeyNavigation.right: loginButton
-                KeyNavigation.down: pin
-
-                C.Button {
-                    id: loginButton
-                    anchors {
-                        left: parent.right
-                        verticalCenter: parent.verticalCenter
-                        leftMargin: 10
-                    }
-                    topPadding: 18
-                    bottomPadding: 18
-                    text: qsTr("PSN Login")
-                    onClicked: stack.push(psnLoginDialogComponent, {login: true, callback: (id) => accountId.text = id})
-                    visible: !Chiaki.settings.psnAccountId
-                    Material.roundedScale: Material.SmallScale
-                    KeyNavigation.priority: KeyNavigation.BeforeItem
-                    KeyNavigation.up: hostField
-                    KeyNavigation.left: accountId
-                    KeyNavigation.right: lookupButton
-                    KeyNavigation.down: pin
-                }
-                C.Button {
-                    id: lookupButton
-                    anchors {
-                        left: loginButton.right
-                        verticalCenter: parent.verticalCenter
-                        leftMargin: 10
-                    }
-                    topPadding: 18
-                    bottomPadding: 18
-                    text: qsTr("Public Lookup")
-                    onClicked: stack.push(psnLoginDialogComponent, {login: false, callback: (id) => accountId.text = id})
-                    visible: !Chiaki.settings.psnAccountId
-                    Material.roundedScale: Material.SmallScale
-                    KeyNavigation.up: hostField
-                    KeyNavigation.priority: KeyNavigation.BeforeItem
-                    KeyNavigation.left: loginButton
-                    KeyNavigation.right: lookupButton
-                    KeyNavigation.down: pin
-                }
-            }
-
-            Label {
-                Layout.alignment: formGrid.columns === 1 ? Qt.AlignLeft : Qt.AlignRight
-                text: qsTr("Remote Play PIN:")
-            }
-
-            C.TextField {
-                id: pin
-                objectName: "remotePlayPin"
-                validator: RegularExpressionValidator { regularExpression: /[0-9]{8}/ }
-                Layout.fillWidth: true
-                Layout.preferredWidth: 400
-                echoMode: TextInput.Password
-                KeyNavigation.priority: {
-                    if(readOnly)
-                        KeyNavigation.BeforeItem
-                    else
-                        KeyNavigation.AfterItem
-                }
-                KeyNavigation.up: accountId
-            }
-
-            Label {
-                Layout.alignment: formGrid.columns === 1 ? Qt.AlignLeft : Qt.AlignRight
-                text: qsTr("Console Pin [Optional]")
-            }
-
-            C.TextField {
-                id: cpin
-                echoMode: TextInput.Password
-                validator: RegularExpressionValidator { regularExpression: /^$|[0-9]{4}/ }
-                Layout.fillWidth: true
-                Layout.preferredWidth: 400
-            }
-
-            Label {
-                Layout.alignment: formGrid.columns === 1 ? Qt.AlignLeft : Qt.AlignRight
-                text: qsTr("Console:")
+                text: qsTr("1. Console type")
             }
 
             ColumnLayout {
+                Layout.fillWidth: true
                 spacing: 0
 
                 C.RadioButton {
@@ -243,11 +122,121 @@ DialogView {
                 C.RadioButton {
                     id: ps5_0
                     property int target: 1000100
-                    lastInFocusChain: true
                     text: qsTr("PS5")
                     checked: ps5
                 }
             }
+
+            Label {
+                Layout.alignment: formGrid.columns === 1 ? Qt.AlignLeft : Qt.AlignRight
+                text: qsTr("Console address")
+            }
+
+            C.TextField {
+                id: hostField
+                echoMode: Chiaki.settings.streamerMode ? TextInput.Password : TextInput.Normal
+                Layout.fillWidth: true
+                Layout.preferredWidth: 400
+            }
+
+            Label {
+                Layout.alignment: formGrid.columns === 1 ? Qt.AlignLeft : Qt.AlignRight
+                text: qsTr("2. PSN Online ID")
+                visible: onlineId.visible
+            }
+
+            C.TextField {
+                id: onlineId
+                echoMode: Chiaki.settings.streamerMode ? TextInput.Password : TextInput.Normal
+                visible: ps4_7.checked
+                placeholderText: qsTr("username, case-sensitive")
+                Layout.fillWidth: true
+                Layout.preferredWidth: 400
+            }
+
+            Label {
+                Layout.alignment: formGrid.columns === 1 ? Qt.AlignLeft : Qt.AlignRight
+                text: qsTr("2. PSN Account ID")
+                visible: accountId.visible
+            }
+
+            C.TextField {
+                id: accountId
+                visible: !ps4_7.checked
+                echoMode: Chiaki.settings.streamerMode ? TextInput.Password : TextInput.Normal
+                placeholderText: qsTr("base64")
+                Layout.fillWidth: true
+                Layout.preferredWidth: 400
+                KeyNavigation.priority: {
+                    if(readOnly)
+                        KeyNavigation.BeforeItem
+                    else
+                        KeyNavigation.AfterItem
+                }
+                KeyNavigation.up: hostField
+                KeyNavigation.right: loginButton
+                KeyNavigation.down: pin
+
+            }
+
+            Flow {
+                Layout.columnSpan: formGrid.columns
+                Layout.fillWidth: true
+                visible: accountId.visible
+                spacing: 6
+                C.Button {
+                    id: loginButton
+                    text: qsTr("PSN Login")
+                    onClicked: stack.push(psnLoginDialogComponent, {login: true, callback: (id) => accountId.text = id})
+                }
+                C.Button {
+                    text: qsTr("Public Lookup")
+                    onClicked: stack.push(psnLoginDialogComponent, {login: false, callback: (id) => accountId.text = id})
+                }
+            }
+
+            Label {
+                Layout.columnSpan: formGrid.columns
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                color: "#adbbb3"
+                text: qsTr("On the console, sign in as the user you want to pair. Open Settings → System → Remote Play → Pair Device for a fresh code.")
+            }
+
+            Label {
+                Layout.alignment: formGrid.columns === 1 ? Qt.AlignLeft : Qt.AlignRight
+                text: qsTr("3. Remote Play PIN")
+            }
+
+            C.TextField {
+                id: pin
+                objectName: "remotePlayPin"
+                validator: RegularExpressionValidator { regularExpression: /[0-9]{8}/ }
+                Layout.fillWidth: true
+                Layout.preferredWidth: 400
+                echoMode: TextInput.Password
+                KeyNavigation.priority: {
+                    if(readOnly)
+                        KeyNavigation.BeforeItem
+                    else
+                        KeyNavigation.AfterItem
+                }
+                KeyNavigation.up: accountId
+            }
+
+            Label {
+                Layout.alignment: formGrid.columns === 1 ? Qt.AlignLeft : Qt.AlignRight
+                text: qsTr("Console login PIN (optional)")
+            }
+
+            C.TextField {
+                id: cpin
+                echoMode: TextInput.Password
+                validator: RegularExpressionValidator { regularExpression: /^$|[0-9]{4}/ }
+                Layout.fillWidth: true
+                Layout.preferredWidth: 400
+            }
+
         }
         }
 
@@ -261,7 +250,6 @@ DialogView {
             objectName: "registrationResult"
             visible: registration.showingResult
             anchors.fill: parent
-            anchors.bottomMargin: 56
             clip: true
             contentWidth: availableWidth
             contentHeight: resultColumn.implicitHeight + 48
@@ -293,12 +281,17 @@ DialogView {
                             : qsTr("Check the details below and use a fresh pairing PIN when you retry.")
                 }
 
+                Button {
+                    visible: registration.registrationLog.length > 0
+                    text: registration.detailsVisible ? qsTr("Hide details") : qsTr("Details")
+                    onClicked: registration.detailsVisible = !registration.detailsVisible
+                }
+
                 Label {
                     Layout.fillWidth: true
-                    visible: text.length > 0
+                    visible: registration.detailsVisible
                     wrapMode: Text.Wrap
                     textFormat: Text.PlainText
-                    font.pixelSize: 16
                     text: registration.registrationLog
                 }
             }

@@ -2885,10 +2885,7 @@ void QmlMainWindow::setSettings(Settings *new_settings)
     settings = new_settings;
     QString profile = settings->GetCurrentProfile();
     qCCritical(chiakiGui) << "Current Profile: " << profile;
-    if(profile.isEmpty())
-        QGuiApplication::setApplicationDisplayName("chiaki-ng");
-    else
-        QGuiApplication::setApplicationDisplayName(QString("chiaki-ng:%1").arg(profile));
+    QGuiApplication::setApplicationDisplayName("KeyStream");
     this->setTitle(QGuiApplication::applicationDisplayName());
 }
 
@@ -7686,7 +7683,10 @@ bool QmlMainWindow::handleShortcut(QKeyEvent *event)
             session->ToggleMute();
         return true;
     case Qt::Key_O:
-        emit menuRequested();
+        if (!session || event->modifiers() != Qt::ControlModifier)
+            return false;
+        if (!event->isAutoRepeat())
+            emit menuRequested();
         return true;
     case Qt::Key_Q:
 #ifndef Q_OS_MACOS
@@ -7716,17 +7716,17 @@ bool QmlMainWindow::event(QEvent *event)
     case QEvent::MouseButtonRelease:
         if (static_cast<QMouseEvent*>(event)->source() != Qt::MouseEventNotSynthesized)
             return true;
-        if (session && !grab_input) {
 #ifndef Q_OS_WIN
+        if (session && !grab_input) {
             if (event->type() == QEvent::MouseMove)
                 session->HandleMouseMoveEvent(static_cast<QMouseEvent*>(event), width(), height());
             else if (event->type() == QEvent::MouseButtonPress)
                 session->HandleMousePressEvent(static_cast<QMouseEvent*>(event));
             else if (event->type() == QEvent::MouseButtonRelease)
                 session->HandleMouseReleaseEvent(static_cast<QMouseEvent*>(event));
-#endif
             return true;
         }
+#endif
         QGuiApplication::sendEvent(quick_window, event);
         break;
     case QEvent::MouseButtonDblClick:
@@ -7834,4 +7834,4 @@ void QmlMainWindow::toggleViewOnly()
     if (enable && native_input)
         native_input->release();
 }
-QString QmlMainWindow::nativeInputStatus() const { return native_input ? native_input->statusText() : QString(); }
+bool QmlMainWindow::nativeInputCaptured() const { return native_input && native_input->isCaptured(); }

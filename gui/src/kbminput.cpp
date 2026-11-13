@@ -2,6 +2,7 @@
 #include "kbminput.h"
 #include "kbmprofiles.h"
 #include "kbmwidgets.h"
+#include "qmlmainwindow.h"
 #include "streamsession.h"
 #include <QApplication>
 #include <QWindow>
@@ -98,14 +99,16 @@ void KbmInput::release() {
     }
 #endif
     if(wasCaptured) { window->setCursor(Qt::ArrowCursor); if(preview) preview->unsetCursor(); }
-    if(wasCaptured) window->setTitle("PS5 Remote KBM — released (F1 capture, F2 controls)");
     if(wasCaptured) qInfo("Native input released; all controls neutral");
     if(preview) { auto p=static_cast<StickPreview*>(preview); p->captured=false; p->report={}; p->update(); }
     if(status) status->setText("Released. F1 captures in the stream; Esc always releases. F2 opens controls.");
 }
 bool KbmInput::capture(bool test) {
     release();
-    if(!test && (!session || session->IsViewOnly() || !window->isActive() || window->visibility()==QWindow::Minimized)) return false;
+    const auto *streamWindow = qobject_cast<QmlMainWindow *>(window);
+    if (!test && (!session || session->IsViewOnly() || !streamWindow || streamWindow->isInputGrabbed()
+                  || !window->isActive() || window->visibility() == QWindow::Minimized))
+        return false;
 #ifdef Q_OS_WIN
     HWND target=reinterpret_cast<HWND>(test?preview->winId():window->winId());
     RAWINPUTDEVICE device{1,2,0,target};
@@ -118,7 +121,6 @@ bool KbmInput::capture(bool test) {
     return false;
 #endif
     testing=test; captured=true; engine.reset(); timer.setInterval(8);
-    window->setTitle("PS5 Remote KBM — MOUSE CAPTURED (Esc releases)");
     if(test) { preview->setFocus(); preview->setCursor(Qt::BlankCursor); }
     else window->setCursor(Qt::BlankCursor);
     if(status) status->setText(test?"Test capture — no console reports sent. Esc releases.":"CAPTURED — Esc releases");
@@ -179,6 +181,11 @@ bool KbmInput::eventFilter(QObject *object,QEvent *event) {
         if(object==window && down && !e->isAutoRepeat() && (e->key()==Qt::Key_F3 || e->key()==Qt::Key_F4)) {
             release(); QMetaObject::invokeMethod(window,e->key()==Qt::Key_F3?"showUserManual":"showConnectionTools",Qt::QueuedConnection); return true;
         }
+        if (object == window && e->key() == Qt::Key_O && e->modifiers() == Qt::ControlModifier) {
+            if (down)
+                return false; // The main window handles the stream shortcut before game input.
+            return true;
+        }
         if(captured && down && e->key()==Qt::Key_Escape) {release(); return true;}
         if(object==window && down && !e->isAutoRepeat() && e->key()==Qt::Key_F1) {if(captured) release(); else capture(false); return true;}
         if(captured) {
@@ -195,7 +202,7 @@ bool KbmInput::eventFilter(QObject *object,QEvent *event) {
 void KbmInput::showControls() {
     release();
     if(dialog) {dialog->show(); dialog->raise(); dialog->activateWindow(); return;}
-    dialog=new QDialog; styleKbmDialog(dialog); dialog->setWindowTitle("PS5 Remote KBM — Controls and local input test"); dialog->resize(620,760);
+    dialog=new QDialog; styleKbmDialog(dialog); dialog->setWindowTitle("KeyStream — Controls and local input test"); dialog->resize(620,760);
     if(window->screen()) dialog->resize(dialog->size().boundedTo(window->screen()->availableGeometry().size()-QSize(40,60)));
     auto layout=new QVBoxLayout(dialog);
     auto help=new QLabel("F1 captures during streaming. Esc, Alt+Tab, focus loss and disconnect release all input.\nF2 opens this panel. Mouse aiming emulates a stick; each game limits camera speed."); help->setWordWrap(true); layout->addWidget(help);
@@ -245,7 +252,3 @@ void KbmInput::showControls() {
     dialog->show(); dialog->raise(); dialog->activateWindow();
 }
 int KbmInput::runLocalTest() { local_test_mode=true; qApp->setQuitOnLastWindowClosed(false); showControls(); return qApp->exec(); }
-QString KbmInput::statusText() const {
-    if(!captured) return "Released — F1 capture • F2 controls";
-    return QString("Captured — Esc release | L %1,%2  R %3,%4").arg(report.lx).arg(report.ly).arg(report.rx).arg(report.ry);
-}

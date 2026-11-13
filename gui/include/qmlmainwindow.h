@@ -74,7 +74,7 @@ public:
     Q_INVOKABLE void toggleViewOnly();
     Q_INVOKABLE void showConnectionTools();
     Q_INVOKABLE void showUserManual();
-    Q_INVOKABLE QString nativeInputStatus() const;
+    Q_INVOKABLE bool nativeInputCaptured() const;
     enum class UpdateRequestReason {
         Unknown,
         SceneChanged,
@@ -152,6 +152,7 @@ public:
     VideoPreset videoPreset() const;
     void setVideoPreset(VideoPreset mode);
 
+    bool isInputGrabbed() const { return grab_input > 0; }
     Q_INVOKABLE void grabInput();
     Q_INVOKABLE void releaseInput();
     Q_INVOKABLE void requestOverlayUpdate();

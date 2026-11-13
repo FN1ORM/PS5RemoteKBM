@@ -14,11 +14,11 @@ DialogView {
         PS4,
         PS5
     }
+    property int initialTab: 0
     property int selectedConsole: SettingsDialog.Console.PS5
     property bool quitControllerMapping: true
     id: dialog
     title: qsTr("Settings")
-    header: qsTr("* Defaults in () to right of value or marked with (Default)")
     buttonVisible: false
     function flickContainsItem(flick, item) {
         let current = item;
@@ -167,6 +167,7 @@ DialogView {
     Item {
         TabBar {
             id: bar
+            currentIndex: dialog.initialTab
             anchors {
                 top: parent.top
                 left: parent.left
@@ -443,6 +444,7 @@ DialogView {
                         bottomMargin: 20
                     }
                     clip: true
+                    ScrollBar.horizontal: ScrollBar {}
                     contentWidth: Math.max(width, generalLayout.width)
                     contentHeight: generalLayout.height
                     flickableDirection: Flickable.AutoFlickIfNeeded
@@ -735,6 +737,7 @@ DialogView {
                         bottomMargin: 20
                     }
                     clip: true
+                    ScrollBar.horizontal: ScrollBar {}
                     contentWidth: Math.max(width, videoGrid.width)
                     contentHeight: videoGrid.height
                     flickableDirection: Flickable.AutoFlickIfNeeded
@@ -1069,15 +1072,45 @@ DialogView {
             }
 
             Item {
-                // Stream
+                ColumnLayout {
+                    id: recoveryOptions
+                    anchors { top: parent.top; left: parent.left; right: parent.right; margins: 16 }
+                    spacing: 3
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Label {
+                            Layout.fillWidth: true
+                            font.bold: true
+                            wrapMode: Text.Wrap
+                            text: qsTr("Request a fresh keyframe when video recovery fails")
+                        }
+                        Switch {
+                            objectName: "keyframeRecovery"
+                            Accessible.name: qsTr("Request a fresh keyframe when video recovery fails")
+                            checked: Chiaki.settings.iDROnFECFailureEnabled
+                            onToggled: Chiaki.settings.iDROnFECFailureEnabled = checked
+                        }
+                    }
+                    Label {
+                        Layout.fillWidth: true
+                        wrapMode: Text.Wrap
+                        color: "#adbbb3"
+                        text: qsTr("Applies on reconnect. The picture may pause briefly while the console sends a clean frame.")
+                    }
+                }
+
                 Flickable {
                     id: streamFlick
                     anchors {
-                        fill: parent
-                        topMargin: 20
-                        bottomMargin: 20
+                        top: recoveryOptions.bottom
+                        topMargin: 12
+                        left: parent.left
+                        right: parent.right
+                        bottom: parent.bottom
+                        bottomMargin: 12
                     }
                     clip: true
+                    ScrollBar.horizontal: ScrollBar {}
                     contentWidth: Math.max(width, streamGrid.width)
                     contentHeight: streamGrid.height
                     flickableDirection: Flickable.AutoFlickIfNeeded
@@ -1535,6 +1568,7 @@ DialogView {
                         bottomMargin: 20
                     }
                     clip: true
+                    ScrollBar.horizontal: ScrollBar {}
                     contentWidth: Math.max(width, audiowifigrid.width)
                     contentHeight: audiowifigrid.height
                     flickableDirection: Flickable.AutoFlickIfNeeded
@@ -1818,21 +1852,6 @@ DialogView {
 
                         Label {
                             Layout.alignment: Qt.AlignRight
-                            text: qsTr("Request IDR Frame on FEC Failure")
-                        }
-
-                        C.CheckBox {
-                            checked: Chiaki.settings.iDROnFECFailureEnabled
-                            onToggled: Chiaki.settings.iDROnFECFailureEnabled = !Chiaki.settings.iDROnFECFailureEnabled
-                        }
-
-                        Label {
-                            Layout.alignment: Qt.AlignRight
-                            text: qsTr("(Unchecked)")
-                        }
-
-                        Label {
-                            Layout.alignment: Qt.AlignRight
                             text: qsTr("Show Stream Stats During Gameplay")
                         }
 
@@ -1860,6 +1879,7 @@ DialogView {
                         bottomMargin: 20
                     }
                     clip: true
+                    ScrollBar.horizontal: ScrollBar {}
                     contentWidth: Math.max(width, consolesLayout.width)
                     contentHeight: consolesLayout.height
                     flickableDirection: Flickable.AutoFlickIfNeeded
@@ -2187,6 +2207,7 @@ DialogView {
                         bottomMargin: 20
                     }
                     clip: true
+                    ScrollBar.horizontal: ScrollBar {}
                     contentWidth: Math.max(width, keysGrid.width)
                     contentHeight: keysGrid.height
                     flickableDirection: Flickable.AutoFlickIfNeeded
@@ -2531,6 +2552,7 @@ DialogView {
                         bottomMargin: 20
                     }
                     clip: true
+                    ScrollBar.horizontal: ScrollBar {}
                     contentWidth: Math.max(width, controllersLayout.width)
                     contentHeight: controllersLayout.height
                     flickableDirection: Flickable.AutoFlickIfNeeded
@@ -2850,6 +2872,7 @@ DialogView {
                         bottomMargin: 20
                     }
                     clip: true
+                    ScrollBar.horizontal: ScrollBar {}
                     contentWidth: Math.max(width, remoteGrid.width)
                     contentHeight: remoteGrid.y + remoteGrid.height
                     flickableDirection: Flickable.AutoFlickIfNeeded
@@ -2995,6 +3018,7 @@ DialogView {
                         bottomMargin: 20
                     }
                     clip: true
+                    ScrollBar.horizontal: ScrollBar {}
                     contentWidth: Math.max(width, configGrid.width)
                     contentHeight: configGrid.y + configGrid.height
                     flickableDirection: Flickable.AutoFlickIfNeeded
@@ -3113,31 +3137,31 @@ DialogView {
             parent: Overlay.overlay
             x: Math.round((root.width - width) / 2)
             y: Math.round((root.height - height) / 2)
-            title: qsTr("About %1-ng").arg(Qt.application.name)
+            title: qsTr("About KeyStream")
             modal: true
             standardButtons: Dialog.Ok
             Material.roundedScale: Material.MediumScale
             onAboutToHide: aboutButton.forceActiveFocus(Qt.TabFocusReason)
 
-            RowLayout {
-                spacing: 50
+            ColumnLayout {
+                spacing: 14
                 onVisibleChanged: if (visible) forceActiveFocus(Qt.TabFocusReason)
                 Keys.onReturnPressed: aboutDialog.close()
                 Keys.onEscapePressed: aboutDialog.close()
 
                 Image {
-                    Layout.preferredWidth: 200
+                    Layout.preferredWidth: 56
+                    Layout.preferredHeight: 56
                     fillMode: Image.PreserveAspectFit
-                    verticalAlignment: Image.AlignTop
-                    source: "qrc:icons/chiaking-logo.svg"
+                    source: "qrc:/icons/keystream.svg"
                 }
 
                 Label {
-                    Layout.preferredWidth: 400
+                    Layout.fillWidth: true
                     verticalAlignment: Text.AlignTop
                     wrapMode: Text.Wrap
-                    text: "<h1>chiaki-ng</h1> by Street Pea, version %1
-                        <h2>Fork of Chiaki</h2> by Florian Markl at version 2.1.1
+                    text: "<h2>KeyStream</h2>
+                        <p>Based on chiaki-ng %1 by Street Pea and Chiaki by Florian Markl.</p>
 
                         <p>This program is free software: you can redistribute it and/or modify
                         it under the terms of the GNU Affero General Public License version 3
