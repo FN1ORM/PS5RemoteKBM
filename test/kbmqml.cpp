@@ -2,6 +2,8 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
+#include <QQuickRenderControl>
+#include <QQmlComponent>
 #include <QQuickItem>
 #include <QEventLoop>
 #include <QTimer>
@@ -11,6 +13,7 @@
 #include <QtQml/qqml.h>
 #include <cstdio>
 #include <cstdlib>
+#include <memory>
 static void settle() { QEventLoop loop;QTimer::singleShot(80,&loop,&QEventLoop::quit);loop.exec(); }
 static void check(bool ok,const char *name) {if(!ok){std::fprintf(stderr,"FAIL: %s\n",name);std::exit(1);}}
 int main(int argc,char **argv) {
@@ -97,15 +100,6 @@ import QtQuick.Controls
 import "." as UI
 ApplicationWindow {
     width: 800; height: 600; visible: true
-    UI.ConfirmDialog {
-        objectName: "confirmation"
-        title: "Remove saved IP?"
-        property int acceptedCount: 0
-        property int rejectedCount: 0
-        callback: function() { acceptedCount++ }
-        rejectCallback: function() { rejectedCount++ }
-        text: "Confirm without losing callback behavior"
-    }
     UI.MessageDialog {
         objectName: "message"
         title: "A long connection failure title that must wrap within a small window"
@@ -127,17 +121,65 @@ ApplicationWindow {
     popup->setProperty("text","Short message");settle();
     check(popup->property("height").toDouble()<400,"short message shrinks after long message");
     QMetaObject::invokeMethod(popup,"close");settle();
-    auto confirmation=window->findChild<QObject*>("confirmation");check(confirmation,"confirmation loads");
-    QMetaObject::invokeMethod(confirmation,"open");settle();
-    QMetaObject::invokeMethod(confirmation,"accept");settle();
-    check(confirmation->property("acceptedCount").toInt()==1,"yes callback fires once");
-    QMetaObject::invokeMethod(confirmation,"open");settle();
-    check(!confirmation->property("newDialogOpen").toBool(),"reused confirmation resets state");
-    QMetaObject::invokeMethod(confirmation,"reject");settle();
-    check(confirmation->property("rejectedCount").toInt()==1,"no callback fires once");
-    check(!confirmation->property("restoreFocusOnClose").toBool(),"confirmation controls focus transfer to next view");
-    auto header = confirmation->property("header").value<QQuickItem *>();
-    check(header && !header->property("visible").toBool(), "a closed confirmation hides its title");
+    // The app renders Quick items into an offscreen window, separate from its native window.
+    QQuickRenderControl renderControl;
+    QQuickWindow offscreen(&renderControl);
+    QQmlComponent confirmFixture(&engine);
+    confirmFixture.setData(R"(
+import QtQuick
+import QtQuick.Controls
+import "." as UI
+Item {
+    property alias confirmation: confirm
+    Button { id: removeButton; text: "Remove saved IP"; objectName: "removeButton"; onClicked: confirm.open(removeButton) }
+    UI.ConfirmDialog {
+        id: confirm
+        title: "Remove saved IP?"
+        text: "This removes the saved address. The console stays paired."
+        property int acceptedCount: 0
+        property int rejectedCount: 0
+    }
+    function setActions() {
+        confirm.callback = function() { confirm.acceptedCount++ };
+        confirm.rejectCallback = function() { confirm.rejectedCount++ };
+    }
+})", QUrl::fromLocalFile(QStringLiteral(KBM_QML_DIR "/ConfirmTest.qml")));
+    std::unique_ptr<QObject> confirmRoot(confirmFixture.create());
+    auto confirmItem = qobject_cast<QQuickItem *>(confirmRoot.get());
+    check(confirmItem, "confirmation fixture loads");
+    confirmItem->setParentItem(offscreen.contentItem());
+    auto confirmation = confirmItem->property("confirmation").value<QQuickItem *>();
+    auto panel = confirmation->findChild<QQuickItem *>("confirmationPanel");
+    auto heading = confirmation->findChild<QQuickItem *>("confirmationTitle");
+    auto remove = confirmItem->findChild<QQuickItem *>("removeButton");
+    auto noButton = confirmation->findChild<QQuickItem *>("confirmationNo");
+    check(panel && heading && remove && noButton, "confirmation has a panel, title and actions");
+    remove->forceActiveFocus();
+    QMetaObject::invokeMethod(confirmItem, "setActions");
+    QMetaObject::invokeMethod(remove, "clicked");
+    for (auto size : {QSize(1280, 720), QSize(480, 360)}) {
+        offscreen.resize(size);
+        confirmItem->setSize(size);
+        settle();
+        check(confirmation->isVisible() && panel->width() > 0 && panel->height() > 0,
+              "confirmation panel opens in the offscreen scene");
+        check(qAbs(panel->x() + panel->width() / 2 - size.width() / 2.0) < 1
+              && qAbs(panel->y() + panel->height() / 2 - size.height() / 2.0) < 1,
+              "confirmation panel stays centered after resizing");
+        const auto headingPos = heading->mapToItem(panel, QPointF());
+        check(panel->isAncestorOf(heading) && heading->isVisible() && headingPos.x() >= 0
+              && headingPos.y() >= 0 && headingPos.y() + heading->height() <= panel->height(),
+              "visible confirmation heading belongs inside the panel");
+    }
+    QMetaObject::invokeMethod(noButton, "clicked");
+    check(confirmation->property("rejectedCount").toInt() == 1, "No fires the reject callback once");
+    check(!confirmation->isVisible() && !heading->isVisible(), "dismissal hides the whole confirmation");
+    check(remove->hasFocus(), "dismissal restores focus to the initiating button");
+    QMetaObject::invokeMethod(confirmItem, "setActions");
+    QMetaObject::invokeMethod(remove, "clicked");
+    QMetaObject::invokeMethod(confirmation, "accept");
+    check(confirmation->property("acceptedCount").toInt() == 1, "Yes fires the accept callback once after reopening");
+    check(!confirmation->isVisible() && !heading->isVisible(), "acceptance hides the whole confirmation");
     engine.loadData(R"(
 import QtQuick
 import QtQuick.Controls

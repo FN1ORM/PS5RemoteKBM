@@ -279,6 +279,7 @@ Pane {
                             }
                         }
                         ToolButton {
+                            id: removeRouteButton
                             text: card.selectedHost.manual ? qsTr("Remove saved IP") : qsTr("Hide")
                             visible: card.selectedHost.manual || (card.selectedHost.discovered && !card.selectedHost.registered)
                             onClicked: {
@@ -289,7 +290,7 @@ Pane {
                                         qsTr("This removes the address from KeyStream. Your console pairing is kept."), () => {
                                             const index = consolePane.resolveRoute(key);
                                             if (index >= 0) Chiaki.deleteHost(index);
-                                        });
+                                        }, null, removeRouteButton);
                                 } else {
                                     root.showConfirmDialog(qsTr("Hide this console?"),
                                         qsTr("You can show it again from Settings → Consoles."),

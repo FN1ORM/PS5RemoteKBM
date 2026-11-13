@@ -108,13 +108,12 @@ Item {
         stack.push(manualHostDialogComponent);
     }
 
-    function showConfirmDialog(title, text, callback, rejectCallback = null) {
+    function showConfirmDialog(title, text, callback, rejectCallback = null, returnFocusTo = null) {
         confirmDialog.title = title;
         confirmDialog.text = text;
         confirmDialog.callback = callback;
         confirmDialog.rejectCallback = rejectCallback;
-        confirmDialog.restoreFocusItem = Window.window.activeFocusItem;
-        confirmDialog.open();
+        confirmDialog.open(returnFocusTo);
     }
 
     function showInfoDialog(title, text) {
