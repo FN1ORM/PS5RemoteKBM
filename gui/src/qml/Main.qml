@@ -188,9 +188,14 @@ Item {
             stack.replace(stack.get(0), autoConnectViewComponent, {}, StackView.Immediate);
     }
 
-    Pane {
+    // The stream renderer owns the swapchain behind the QML overlay.  Once a
+    // session ends, always paint an opaque application surface before showing
+    // the console or settings pages so a previously presented video frame
+    // cannot remain visible underneath them.
+    Rectangle {
         anchors.fill: parent
         visible: !Chiaki.window.hasVideo && !Chiaki.window.keepVideo
+        color: Material.background
     }
 
     StackView {

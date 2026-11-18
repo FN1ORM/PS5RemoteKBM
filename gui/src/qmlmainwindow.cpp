@@ -5167,6 +5167,12 @@ renderer_backend_ready:
         native_input->setSession(s);
         session = s;
         stream_session_active.storeRelease(s ? 1 : 0);
+        // Do not rely solely on StreamView's deactivation handler to release
+        // the video layer.  A session can end while a dialog or page
+        // transition is active, leaving the last presented frame visible
+        // behind the normal QML UI for one or more frames.
+        if (!s && keep_video)
+            setKeepVideo(false);
         startup_video_visible_generation.fetchAndAddRelaxed(1);
         grab_input = 0;
         if (session)
