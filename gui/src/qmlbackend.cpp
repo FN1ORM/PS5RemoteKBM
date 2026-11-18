@@ -1000,13 +1000,6 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             session_info.hw_decoder = "cuda";
             fallbackApplied = true;
         }
-        else
-        if (availableDecoders.contains("d3d11va"))
-        {
-            qCInfo(chiakiGui) << "Renderer backend is OpenGL, falling back from vulkan decoder to d3d11va";
-            session_info.hw_decoder = "d3d11va";
-            fallbackApplied = true;
-        }
 #elif defined(Q_OS_MACOS)
         if (availableDecoders.contains("videotoolbox"))
         {
@@ -1048,10 +1041,20 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             qCInfo(chiakiGui) << "Auto hw decoder selecting cuda";
             session_info.hw_decoder = "cuda";
         }
-        else if(availableDecoders.contains("d3d11va"))
+        else if(!use_opengl_renderer && availableDecoders.contains("d3d11va"))
         {
             qCInfo(chiakiGui) << "Auto hw decoder selecting d3d11va";
             session_info.hw_decoder = "d3d11va";
+        }
+        else if(use_opengl_renderer)
+        {
+            // D3D11VA frames have to cross a D3D11 -> software -> OpenGL
+            // boundary. On some Windows drivers that path presents SDR video
+            // with broken range and colour conversion (white clipping and a
+            // magenta cast). Software decoding keeps the frame metadata and
+            // pixel format in one presentation path. A user's explicit
+            // decoder selection is intentionally still respected.
+            qCInfo(chiakiGui) << "OpenGL renderer selecting software decoder to preserve SDR colour output";
         }
 #elif defined(Q_OS_MACOS)
         if(availableDecoders.contains("videotoolbox"))
