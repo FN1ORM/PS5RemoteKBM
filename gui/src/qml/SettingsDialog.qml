@@ -1796,34 +1796,6 @@ DialogView {
 
                         Label {
                             Layout.alignment: Qt.AlignRight
-                            text: qsTr("Weak Wifi Notification:")
-                        }
-
-                        C.Slider {
-                            Layout.preferredWidth: 250
-                            from: 0
-                            to: 100
-                            stepSize: 1
-                            value: Chiaki.settings.wifiDroppedNotif
-                            onMoved: Chiaki.settings.wifiDroppedNotif = value
-
-                            Label {
-                                anchors {
-                                    left: parent.right
-                                    verticalCenter: parent.verticalCenter
-                                    leftMargin: 10
-                                }
-                                text: qsTr(">= %1% dropped packets").arg(parent.value)
-                            }
-                        }
-
-                        Label {
-                            Layout.alignment: Qt.AlignRight
-                            text: qsTr("(3%)")
-                        }
-
-                        Label {
-                            Layout.alignment: Qt.AlignRight
                             text: qsTr("Packet Loss Reported Max:")
                         }
 

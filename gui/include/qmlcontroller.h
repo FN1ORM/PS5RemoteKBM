@@ -3,6 +3,7 @@
 #include "controllermanager.h"
 
 class QTimer;
+class QmlMainWindow;
 
 class QmlController : public QObject
 {
@@ -14,7 +15,7 @@ class QmlController : public QObject
     Q_PROPERTY(bool playStation READ isPS CONSTANT)
 
 public:
-    QmlController(Controller *controller, uint32_t shortcut, QObject *target, QObject *parent = nullptr);
+    QmlController(Controller *controller, uint32_t shortcut, QmlMainWindow *target, QObject *parent = nullptr);
     ~QmlController();
 
     bool isDualSense() const;
@@ -29,7 +30,7 @@ public:
 private:
     void sendKey(Qt::Key key, Qt::KeyboardModifiers modifiers = Qt::NoModifier);
 
-    QObject *target = {};
+    QmlMainWindow *target = {};
     uint32_t escape_shortcut = 0;
     uint32_t old_buttons = 0;
     Controller *controller = {};

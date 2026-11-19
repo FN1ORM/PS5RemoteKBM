@@ -1,4 +1,5 @@
 #include "qmlcontroller.h"
+#include "qmlmainwindow.h"
 
 #include <QTimer>
 #include <QKeyEvent>
@@ -21,10 +22,9 @@ static QVector<QPair<uint32_t, Qt::Key>> key_map = {
     { CHIAKI_CONTROLLER_BUTTON_R1, Qt::Key_PageDown },
     { CHIAKI_CONTROLLER_BUTTON_OPTIONS, Qt::Key_Menu },
     { CHIAKI_CONTROLLER_BUTTON_L3, Qt::Key_F1},
-    { CHIAKI_CONTROLLER_BUTTON_R3, Qt::Key_F2},
 };
 
-QmlController::QmlController(Controller *c, uint32_t shortcut, QObject *t, QObject *parent)
+QmlController::QmlController(Controller *c, uint32_t shortcut, QmlMainWindow *t, QObject *parent)
     : QObject(parent)
     , target(t)
     , escape_shortcut(shortcut)
@@ -32,6 +32,10 @@ QmlController::QmlController(Controller *c, uint32_t shortcut, QObject *t, QObje
 {
     repeat_timer = new QTimer(this);
     connect(repeat_timer, &QTimer::timeout, this, [this]() {
+        if (!target->controllerNavigationActive()) {
+            repeat_timer->stop();
+            return;
+        }
         if (!repeat_running++)
             repeat_timer->start(80);
         sendKey(pressed_key);
@@ -42,6 +46,20 @@ QmlController::QmlController(Controller *c, uint32_t shortcut, QObject *t, QObje
     connect(controller, &Controller::StateChanged, this, [this]() {
         auto state = controller->GetState();
         auto buttons = state.buttons;
+
+        if (escape_shortcut &&
+            (old_buttons & escape_shortcut) == escape_shortcut &&
+            (buttons & escape_shortcut) != escape_shortcut) {
+            old_buttons = buttons;
+            repeat_timer->stop();
+            sendKey(Qt::Key_O, Qt::ControlModifier);
+            return;
+        }
+        if (!target->controllerNavigationActive()) {
+            old_buttons = buttons;
+            repeat_timer->stop();
+            return;
+        }
 
         if (state.left_x > 30000)
             buttons |= CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT;
@@ -66,9 +84,6 @@ QmlController::QmlController(Controller *c, uint32_t shortcut, QObject *t, QObje
                 repeat_running = 1;
             }
         }
-
-        if ((old_buttons & escape_shortcut) == escape_shortcut && (buttons & escape_shortcut) != escape_shortcut)
-            sendKey(Qt::Key_O, Qt::ControlModifier);
 
         old_buttons = buttons;
     });

@@ -212,7 +212,7 @@ Do not put the PS5 in a router DMZ or disable firewalls as a blanket troubleshoo
 
 ## 13. Improve stability: choose a useful baseline
 
-F4 opens **Connection and quality**. The presets apply to the next session and change **both Local PS5 and Remote PS5** video profiles. A private PS5 address reached through a VPN can select Local settings, despite crossing the internet. Choose the preset, apply it, disconnect and reconnect.
+F4 opens **Connection and quality**. The presets apply to the next session and change **both Local PS5 and Remote PS5** video profiles. On Windows, a saved IPv4 address routed through the Tailscale interface uses Remote settings. Choose the preset, apply it, disconnect and reconnect.
 
 | Preset | Resolution / frame rate | Target bitrate | Use |
 | --- | --- | --- | --- |
@@ -301,7 +301,7 @@ Click a binding and press a key to change it. Clear removes it. You can also ass
 ### Watch someone play on the PS5
 
 1. Start Remote Play using your usual paired PS5 profile and connection route.
-2. Press **Alt+F5** to switch to **Watch only**. You can also select **Watch** on the stream toolbar or press **Ctrl+O** and select **Watch only**.
+2. Press **Alt+F5** to switch to **Watch only**, or press **Ctrl+O** and select **Watch only** from the stream menu.
 3. Have the person at the PS5 press the **PS** button on their DualSense and assign it to a **different PS5 user profile** from the one your laptop uses. Keep the Remote Play profile signed in. They can play on their monitor while you watch and listen on the laptop, subject to the game's Remote Play support. [Sony's guide to local users during Remote Play](https://remoteplay.dl.playstation.net/remoteplay/lang/en/1100004.html)
 4. To return to Remote Play controls, press **Alt+F5** again or choose **Resume control** in the stream menu. Release any held gamepad buttons, triggers or touches and center the sticks. Press **F1** if you want keyboard and mouse capture.
 

@@ -168,7 +168,7 @@ Rectangle {
                         const loss = isFinite(stream.averagePacketLoss) ? (stream.averagePacketLoss * 100).toFixed(1) + "%" : "—";
                         const bitrate = stream.measuredBitrate > 0 ? stream.measuredBitrate.toFixed(1) + " Mbps" : "—";
                         const rtt = stream.initialRoundTripMs >= 0 ? stream.initialRoundTripMs.toFixed(0) + " ms" : "—";
-                        return qsTr("Received %1  ·  Packet loss %2  ·  Dropped frames %3  ·  Initial round trip %4")
+                        return qsTr("Video bitrate estimate %1  ·  Packet loss %2  ·  Dropped frames %3  ·  Initial round trip %4")
                             .arg(bitrate).arg(loss).arg(Chiaki.window.droppedFrames).arg(rtt);
                     }
                 }

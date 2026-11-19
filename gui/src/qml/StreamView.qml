@@ -303,30 +303,6 @@ Item {
         }
     }
 
-    RoundButton {
-        anchors {
-            right: parent.right
-            top: parent.top
-            margins: 40
-        }
-        icon.source: "qrc:/icons/discover-off-24px.svg"
-        icon.width: 50
-        icon.height: 50
-        padding: 20
-        checked: true
-        opacity: networkIndicatorTimer.running ? 0.7 : 0.0
-        visible: opacity
-        Material.background: Material.accent
-
-        Behavior on opacity { NumberAnimation { duration: 400 } }
-
-        Timer {
-            id: networkIndicatorTimer
-            running: Chiaki.session?.averagePacketLoss > (Chiaki.settings.wifiDroppedNotif * 0.01)
-            interval: 400
-        }
-    }
-
     Component {
         id: streamStatsContent
         Item {
@@ -469,62 +445,6 @@ Item {
                         font.pixelSize: 18
                     }
                 }
-            }
-        }
-    }
-
-    Rectangle {
-        id: streamToolbar
-        anchors { top: parent.top; right: parent.right; margins: 12 }
-        z: 5
-        visible: !!Chiaki.session && Chiaki.session.connected && !menuController.open && !root.streamPanelOpen
-                 && !sessionPinDialogActive && !sessionStopDialogActive
-                 && !separateSessionStopWindow.visible && !separateSessionPinWindow.visible
-        width: Math.min(parent.width - 24, toolbarRow.implicitWidth + 16)
-        height: toolbarRow.implicitHeight + 8
-        radius: 8
-        color: "#ee202725"
-        border.color: "#485851"
-
-        RowLayout {
-            id: toolbarRow
-            anchors { fill: parent; leftMargin: 8; rightMargin: 8 }
-            spacing: 8
-
-            Label {
-                Layout.fillWidth: true
-                elide: Text.ElideRight
-                font.bold: true
-                color: "#edf5f0"
-                text: Chiaki.session && Chiaki.session.viewOnly ? qsTr("Watch only") : qsTr("Remote play")
-            }
-
-            Label {
-                id: captureState
-                property bool captured: false
-                visible: view.width >= 410
-                font.pixelSize: 12
-                color: "#adbbb3"
-                text: captured ? qsTr("Keyboard captured · Esc releases") : qsTr("Keyboard released")
-                Timer {
-                    interval: 250
-                    running: streamToolbar.visible
-                    triggeredOnStart: true
-                    repeat: true
-                    onTriggered: captureState.captured = Chiaki.window.nativeInputCaptured()
-                }
-            }
-
-            ToolButton {
-                text: Chiaki.session && Chiaki.session.viewOnly ? qsTr("Take control") : qsTr("Watch")
-                Accessible.name: Chiaki.session && Chiaki.session.viewOnly ? qsTr("Resume remote play") : qsTr("Switch to Watch only")
-                onClicked: Chiaki.window.toggleViewOnly()
-            }
-
-            ToolButton {
-                text: qsTr("Menu")
-                Accessible.name: qsTr("Stream menu, Ctrl+O")
-                onClicked: menuController.toggle()
             }
         }
     }

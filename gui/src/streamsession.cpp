@@ -16,6 +16,13 @@
 #include <QtMath>
 #include <atomic>
 
+#ifdef Q_OS_WIN
+#include <winsock2.h>
+#include <iphlpapi.h>
+#include <QHostAddress>
+#include <QNetworkInterface>
+#endif
+
 #include <algorithm>
 
 #include <cstring>
@@ -259,6 +266,25 @@ static bool isLocalAddress(QString host)
     return false;
 }
 
+#ifdef Q_OS_WIN
+static bool isTailscaleSubnetRoute(const QString &host)
+{
+	QHostAddress address;
+	bool ipv4 = false;
+	if(!address.setAddress(host))
+		return false;
+	const quint32 ip = address.toIPv4Address(&ipv4);
+	if(!ipv4)
+		return false;
+
+	DWORD interface_index;
+	if(GetBestInterface(htonl(ip), &interface_index) != NO_ERROR)
+		return false;
+	const auto adapter = QNetworkInterface::interfaceFromIndex(interface_index);
+	return adapter.humanReadableName().contains(QStringLiteral("Tailscale"), Qt::CaseInsensitive);
+}
+#endif
+
 StreamSessionConnectInfo::StreamSessionConnectInfo(
 		Settings *settings,
 		ChiakiTarget target,
@@ -284,10 +310,14 @@ StreamSessionConnectInfo::StreamSessionConnectInfo(
 	log_sanitize = settings->GetLogSanitize();
 	audio_volume = settings->GetAudioVolume();
 	log_file = CreateLogFilename();
-	// local connection
-	if(duid.isEmpty() && isLocalAddress(host))
+	bool local = duid.isEmpty() && isLocalAddress(host);
+#ifdef Q_OS_WIN
+	// A saved private IP can be routed to another network by Tailscale.
+	if(local && isTailscaleSubnetRoute(host))
+		local = false;
+#endif
+	if(local)
 		video_profile = chiaki_target_is_ps5(target) ? settings->GetVideoProfileLocalPS5(): settings->GetVideoProfileLocalPS4();
-	// remote connection
 	else
 		video_profile = chiaki_target_is_ps5(target) ? settings->GetVideoProfileRemotePS5(): settings->GetVideoProfileRemotePS4();
 	this->target = target;
@@ -404,6 +434,9 @@ StreamSession::StreamSession(const StreamSessionConnectInfo &connect_info, QObje
 	player_index = 0;
 	memset(led_color, 0, sizeof(led_color));
 	packet_loss_max = connect_info.packet_loss_max;
+	const auto &profile = connect_info.video_profile;
+	CHIAKI_LOGI(GetChiakiLog(), "Requested video: %ux%u at %u fps, %u kbps",
+		profile.width, profile.height, profile.max_fps, profile.bitrate);
 	ChiakiErrorCode err;
 #if CHIAKI_LIB_ENABLE_PI_DECODER
 	if(connect_info.decoder == Decoder::Pi)

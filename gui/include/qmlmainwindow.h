@@ -74,7 +74,7 @@ public:
     Q_INVOKABLE void toggleViewOnly();
     Q_INVOKABLE void showConnectionTools();
     Q_INVOKABLE void showUserManual();
-    Q_INVOKABLE bool nativeInputCaptured() const;
+    bool controllerNavigationActive() const;
     enum class UpdateRequestReason {
         Unknown,
         SceneChanged,
@@ -318,6 +318,7 @@ private:
     QAtomicInteger<int> present_pacing_reset_pending = 0;
     QAtomicInteger<int> ui_priority_update_pending = 0;
     QAtomicInteger<int> overlay_interaction_active = 0;
+    bool opengl_was_fullscreen = false;
     bool keep_video = false;
     RenderBackend render_backend = RenderBackend::Vulkan;
     KbmInput *native_input = nullptr;

@@ -5288,6 +5288,19 @@ renderer_backend_ready:
         }
     });
     connect(backend, &QmlBackend::windowTypeUpdated, this, &QmlMainWindow::updateWindowType);
+    if (render_backend == RenderBackend::OpenGL) {
+        connect(this, &QWindow::windowStateChanged, this, [this](Qt::WindowState state) {
+            const bool fullscreen = state == Qt::WindowFullScreen;
+            if (fullscreen == opengl_was_fullscreen)
+                return;
+            opengl_was_fullscreen = fullscreen;
+            // Recreate after the window manager finishes changing the drawable.
+            if (!quick_item || !isExposed())
+                return;
+            destroySwapchain();
+            updateSwapchain();
+        }, Qt::QueuedConnection);
+    }
 
     if (render_backend == RenderBackend::OpenGL) {
         render_thread = QGuiApplication::instance()->thread();
@@ -6073,6 +6086,9 @@ void QmlMainWindow::destroySwapchain()
 
     Q_ASSERT(QThread::currentThread() == render_thread);
 
+    if (render_backend == RenderBackend::OpenGL && quick_frame)
+        endFrame();
+
     if (deferred_swap_thread && deferred_swap_thread->hasPendingWork())
         drainDeferredSwaps();
     {
@@ -6087,6 +6103,8 @@ void QmlMainWindow::destroySwapchain()
             swapchain_size = QSize();
             return;
         }
+        quick_window->setRenderTarget(QQuickRenderTarget());
+        pl_tex_destroy(placeboGpu(), &quick_tex);
         delete quick_fbo;
         quick_fbo = nullptr;
         doneOpenGLContextCurrent();
@@ -6950,7 +6968,6 @@ void QmlMainWindow::render()
                 logQuickBeginFrameStats(quick_begin_after_us, quick_begin_after_us - quick_begin_begin_us);
             if (quick_frame) {
                 const qint64 quick_render_call_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
-                clearQuickOpenGLTarget(quick_fbo);
                 quick_render->render();
                 const qint64 quick_render_call_after_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
                 if (quick_render_call_after_us >= quick_render_call_begin_us)
@@ -7439,8 +7456,6 @@ void QmlMainWindow::render()
                 logQuickBeginFrameStats(quick_begin_after_us, quick_begin_after_us - quick_begin_begin_us);
             if (quick_frame) {
                 const qint64 quick_render_call_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
-                if (render_backend == RenderBackend::OpenGL)
-                    clearQuickOpenGLTarget(quick_fbo);
                 quick_render->render();
                 const qint64 quick_render_call_after_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
                 if (quick_render_call_after_us >= quick_render_call_begin_us)
@@ -7840,4 +7855,4 @@ void QmlMainWindow::toggleViewOnly()
     if (enable && native_input)
         native_input->release();
 }
-bool QmlMainWindow::nativeInputCaptured() const { return native_input && native_input->isCaptured(); }
+bool QmlMainWindow::controllerNavigationActive() const { return !session || grab_input; }
