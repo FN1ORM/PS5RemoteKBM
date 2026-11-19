@@ -12,7 +12,8 @@
 namespace kbm {
 enum Action { Cross, Circle, Square, Triangle, DLeft, DRight, DUp, DDown,
     L1, R1, L3, R3, Options, Share, Touchpad, PS, L2, R2,
-    Up, Down, Left, Right, Walk, Count };
+    Up, Down, Left, Right, Walk,
+    RightStickUp, RightStickDown, RightStickLeft, RightStickRight, Count };
 struct Config {
     double sensitivityX=1, sensitivityY=1, exponent=1, deadzone=0,
         antiDeadzone=0, smoothingMs=16, recenterMs=35, maximum=1, walkTilt=.45;
@@ -37,11 +38,11 @@ class Engine {
     std::deque<Move> moves;
     // Track physical inputs separately: repeated down events are idempotent and
     // releasing one of two keys bound to the same action cannot release the other.
-    std::map<int,Action> held;
+    std::map<int64_t,Action> held;
     double lastMovement=-1, previous=-1, lastX=0,lastY=0, releaseX=0,releaseY=0;
 public:
     Config config;
-    void key(int physical, Action action, bool down) {
+    void key(int64_t physical, Action action, bool down) {
         if(down && action>=0 && action<Count) held.emplace(physical,action);
         else if(!down) held.erase(physical);
     }
@@ -67,6 +68,20 @@ public:
         double y=double(actions.count(Down))-double(actions.count(Up));
         double length=std::hypot(x,y), scale=actions.count(Walk)?config.walkTilt:1;
         if(length) { out.lx=axis(x/length*scale); out.ly=axis(y/length*scale); }
+        const bool stickHeld = actions.count(RightStickUp) || actions.count(RightStickDown)
+            || actions.count(RightStickLeft) || actions.count(RightStickRight);
+        if(stickHeld) {
+            // A held direction owns the right stick. Discard mouse motion so
+            // releasing the key cannot replay an old movement.
+            moves.clear();
+            lastMovement=-1;
+            lastX=lastY=releaseX=releaseY=0;
+            x=double(actions.count(RightStickRight))-double(actions.count(RightStickLeft));
+            y=double(actions.count(RightStickDown))-double(actions.count(RightStickUp));
+            length=std::hypot(x,y);
+            if(length) { out.rx=axis(x/length); out.ry=axis(y/length); }
+            return out;
+        }
         // 8 ms minimum window at 125 Hz; zero smoothing means one input tick.
         const double window=std::max(.008,config.smoothingMs/1000.0);
         if(lastMovement>=0 && now-lastMovement<=window) {

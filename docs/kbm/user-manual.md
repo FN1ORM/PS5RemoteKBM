@@ -283,6 +283,7 @@ Different metrics describe different stages. Do not call a short smooth interval
 | Ctrl+O | Open or close the stream menu, including during keyboard capture |
 | W / A / S / D | Left stick |
 | Mouse movement | Right stick |
+| Numpad 8 / 2 / 4 / 6 | Hold right stick up / down / left / right. Combine two for a diagonal. |
 | Left / right mouse button | R2 / L2 |
 | Space / C / E / R | Cross / Circle / Square / Triangle |
 | Shift / V | L3 / R3 |

@@ -32,7 +32,8 @@
 namespace {
 const char *names[kbm::Count]={"Cross","Circle","Square","Triangle","D-pad left","D-pad right",
     "D-pad up","D-pad down","L1","R1","L3","R3","Options","Share","Touchpad click","PS",
-    "L2","R2","Move up","Move down","Move left","Move right","Walk"};
+    "L2","R2","Move up","Move down","Move left","Move right","Walk",
+    "Right stick up","Right stick down","Right stick left","Right stick right"};
 class StickPreview : public QWidget {
 public:
     kbm::Report report;
@@ -45,7 +46,7 @@ public:
             QPointF center(width()*(n?.72:.28),93); p.setPen(QColor(140,150,170)); p.drawEllipse(center,42,42);
             const double x=(n?report.rx:report.lx)/32767.0, y=(n?report.ry:report.ly)/32767.0;
             p.setBrush(QColor(0,170,255)); p.drawEllipse(center+QPointF(x*38,y*38),5,5); p.setBrush(Qt::NoBrush);
-            p.drawText(QRectF(center.x()-85,139,170,20),Qt::AlignCenter,n?"Right stick / mouse":"Left stick / WASD");
+            p.drawText(QRectF(center.x()-85,139,170,20),Qt::AlignCenter,n?"Right stick / mouse + keys":"Left stick / WASD");
         }
     }
 };
@@ -64,7 +65,9 @@ void KbmInput::defaults() {
     engine.config=kbm::Config{}; keys.clear(); mouseButtons.clear();
     const int bindings[kbm::Count]={Qt::Key_Space,Qt::Key_C,Qt::Key_E,Qt::Key_R,Qt::Key_Left,Qt::Key_Right,
         Qt::Key_Up,Qt::Key_Down,Qt::Key_Q,Qt::Key_F,Qt::Key_Shift,Qt::Key_V,Qt::Key_Return,0,Qt::Key_Tab,
-        Qt::Key_P,0,0,Qt::Key_W,Qt::Key_S,Qt::Key_A,Qt::Key_D,Qt::Key_Control};
+        Qt::Key_P,0,0,Qt::Key_W,Qt::Key_S,Qt::Key_A,Qt::Key_D,Qt::Key_Control,
+        KbmProfiles::bindingKey(Qt::Key_8,Qt::KeypadModifier),KbmProfiles::bindingKey(Qt::Key_2,Qt::KeypadModifier),
+        KbmProfiles::bindingKey(Qt::Key_4,Qt::KeypadModifier),KbmProfiles::bindingKey(Qt::Key_6,Qt::KeypadModifier)};
     for(int a=0;a<kbm::Count;++a) if(bindings[a]) keys.insert(a,bindings[a]);
     mouseButtons.insert(kbm::R2,1); mouseButtons.insert(kbm::L2,2);
 }
@@ -169,7 +172,8 @@ bool KbmInput::eventFilter(QObject *object,QEvent *event) {
     if(event->type()==QEvent::KeyPress || event->type()==QEvent::KeyRelease) {
         auto e=static_cast<QKeyEvent*>(event); bool down=event->type()==QEvent::KeyPress;
         if(binding>=0 && down && !e->isAutoRepeat()) {
-            if(e->key()!=Qt::Key_Escape && e->key()!=Qt::Key_F1 && e->key()!=Qt::Key_F2 && e->key()!=Qt::Key_F3 && e->key()!=Qt::Key_F4) keys[binding]=e->key();
+            const int key=KbmProfiles::bindingKey(e->key(),e->modifiers());
+            if(!KbmProfiles::reservedKey(key)) keys[binding]=key;
             binding=-1; if(rebuildBindings) rebuildBindings(); save(); return true;
         }
         if(object==window && down && !e->isAutoRepeat() && e->key()==Qt::Key_F2) {showControls(); return true;}
@@ -190,8 +194,18 @@ bool KbmInput::eventFilter(QObject *object,QEvent *event) {
         if(object==window && down && !e->isAutoRepeat() && e->key()==Qt::Key_F1) {if(captured) release(); else capture(false); return true;}
         if(captured) {
             if(e->key()==Qt::Key_Alt || e->key()==Qt::Key_Meta) {release(); return false;}
-            if(!e->isAutoRepeat()) for(auto it=keys.cbegin();it!=keys.cend();++it) if(it.value()==e->key())
-                engine.key(e->key()*kbm::Count+it.key(),kbm::Action(it.key()),down);
+            if(!e->isAutoRepeat()) {
+                const int key=KbmProfiles::bindingKey(e->key(),e->modifiers());
+                // Keep older non-keypad bindings usable on keypad keys unless
+                // the keypad key has a more specific assignment.
+                const int matched=std::find(keys.cbegin(),keys.cend(),key)!=keys.cend()?key:e->key();
+                // Use the scan code where Windows provides it so the key-up
+                // releases the same physical input across a Num Lock change.
+                const int64_t physical=e->nativeScanCode()?e->nativeScanCode():key;
+                for(auto it=keys.cbegin();it!=keys.cend();++it)
+                    if(!down || it.value()==matched)
+                        engine.key(-1-physical*kbm::Count-it.key(),kbm::Action(it.key()),down);
+            }
             tick(); return true;
         }
     }
@@ -205,7 +219,7 @@ void KbmInput::showControls() {
     dialog=new QDialog; styleKbmDialog(dialog); dialog->setWindowTitle("KeyStream — Controls and local input test"); dialog->resize(620,760);
     if(window->screen()) dialog->resize(dialog->size().boundedTo(window->screen()->availableGeometry().size()-QSize(40,60)));
     auto layout=new QVBoxLayout(dialog);
-    auto help=new QLabel("F1 captures during streaming. Esc, Alt+Tab, focus loss and disconnect release all input.\nF2 opens this panel. Mouse aiming emulates a stick; each game limits camera speed."); help->setWordWrap(true); layout->addWidget(help);
+    auto help=new QLabel("F1 captures during streaming. Esc, Alt+Tab, focus loss and disconnect release all input.\nHold Num 8 / 2 / 4 / 6 for the right stick, or combine two for a diagonal. F2 opens this panel."); help->setWordWrap(true); layout->addWidget(help);
     auto row=new QHBoxLayout; auto profiles=new QComboBox; auto s=controlsSettings(); s.beginGroup("profiles");
     auto list=s.childGroups(); if(!list.contains(profile)) list.prepend(profile); profiles->addItems(list); profiles->setCurrentText(profile);
     row->addWidget(new QLabel("Profile")); row->addWidget(profiles,1); auto add=new QPushButton("Save as…"); auto reset=new QPushButton("Reset defaults"); row->addWidget(add); row->addWidget(reset); layout->addLayout(row);
