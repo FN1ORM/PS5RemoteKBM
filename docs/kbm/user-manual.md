@@ -241,6 +241,8 @@ More bitrate is not automatically better. It can turn a variable connection into
 
 ## 14. Measure direct/relay, ping and stream health
 
+During playback, the small counter at the top left shows how many different PS5 stream frames KeyStream presents per second. Repeated draws of the same stream frame count once. A sustained freeze reads 0 FPS. The game can render at a different rate internally. Open **Ctrl+O**, toggle **Show FPS counter**, and choose **Done** to return to play. KeyStream remembers this choice for the profile.
+
 In F4, select **Load Tailscale peers**, choose the Android subnet router and run the peer check. These commands are read only. The test reports how the peer path is reached and its approximate round-trip time. It does not benchmark the PS5 or change route approval, access rules or VPN settings.
 
 Tailscale may initially reply through DERP before negotiating a direct path. Persistent relaying can add delay or limit throughput; a direct path usually performs better. Tailscale explains the distinction in [connection types](https://tailscale.com/docs/reference/connection-types) and [performance troubleshooting](https://tailscale.com/docs/reference/troubleshooting/poor-performance-tailnet).

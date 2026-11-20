@@ -100,6 +100,17 @@ void QmlSettings::setHideCursor(bool enabled)
     emit hideCursorChanged();
 }
 
+bool QmlSettings::showFps() const
+{
+    return settings->GetShowFps();
+}
+
+void QmlSettings::setShowFps(bool enabled)
+{
+    settings->SetShowFps(enabled);
+    emit showFpsChanged();
+}
+
 bool QmlSettings::showStreamStats() const
 {
     return settings->GetShowStreamStats();
@@ -1897,6 +1908,7 @@ void QmlSettings::refreshAllKeys()
     emit buttonsByPositionChanged();
     emit allowJoystickBackgroundEventsChanged();
     emit startMicUnmutedChanged();
+    emit showFpsChanged();
     emit showStreamStatsChanged();
     emit streamerModeChanged();
 #ifdef CHIAKI_GUI_ENABLE_STEAMDECK_NATIVE

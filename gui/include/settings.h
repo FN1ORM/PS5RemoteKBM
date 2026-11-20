@@ -270,6 +270,8 @@ class Settings : public QObject
 		RumbleHapticsIntensity GetRumbleHapticsIntensity() const;
 		void SetRumbleHapticsIntensity(RumbleHapticsIntensity intensity);
 
+		bool GetShowFps() const { return settings.value("settings/show_fps", true).toBool(); }
+		void SetShowFps(bool enabled) { settings.setValue("settings/show_fps", enabled); }
 		bool GetShowStreamStats() const            { return settings.value("settings/show_stream_stats", false).toBool(); }
 		void SetShowStreamStats(bool enabled)      { settings.setValue("settings/show_stream_stats", enabled); }
 

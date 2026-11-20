@@ -173,6 +173,11 @@ Rectangle {
                     }
                 }
                 Switch {
+                    text: qsTr("Show FPS counter")
+                    checked: Chiaki.settings.showFps
+                    onToggled: Chiaki.settings.showFps = checked
+                }
+                Switch {
                     text: qsTr("Show stream stats during play")
                     checked: Chiaki.settings.showStreamStats
                     onToggled: Chiaki.settings.showStreamStats = checked

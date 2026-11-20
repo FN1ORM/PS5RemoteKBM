@@ -488,6 +488,7 @@ private:
 struct DeferredSwapTask
 {
     qint64 submit_request_us = 0;
+    qint64 video_pts = StreamFps::noFrame;
     int queue_depth_at_submit = 0;
     int depth_limit = 0;
     bool pending_frame_waiting = false;
@@ -565,7 +566,7 @@ protected:
                                                task.pending_frame_waiting,
                                                task.pending_overflow_waiting,
                                                task.present_interval_us,
-                                               task.present_submit_interval_us);
+                                               task.present_submit_interval_us, task.video_pts);
             }
 
             {
@@ -5182,6 +5183,9 @@ renderer_backend_ready:
         // queue reset below waits only for a render that is drawing queued frames.
         if (!s)
             drainRenderThread();
+        presentation_rate.reset();
+        stream_fps = -1;
+        emit streamFpsChanged();
         if (!preserve_startup_warmup) {
             {
                 QMutexLocker locker(&direct_frame_mutex);
@@ -5338,6 +5342,11 @@ renderer_backend_ready:
     dropped_frames_timer->setInterval(1000);
     dropped_frames_timer->start();
     connect(dropped_frames_timer, &QTimer::timeout, this, [this]() {
+        const int fps = presentation_rate.sample(chiaki_time_now_monotonic_us());
+        if (fps != stream_fps) {
+            stream_fps = fps;
+            emit streamFpsChanged();
+        }
         int dropped_frames_next = dropped_frames_current.fetchAndStoreRelaxed(0);
         if (dropped_frames != dropped_frames_next) {
             dropped_frames = dropped_frames_next;
@@ -5720,12 +5729,13 @@ bool QmlMainWindow::enqueueDeferredSwap(qint64 submit_begin_us,
                                         bool pending_frame_waiting,
                                         bool pending_overflow_waiting,
                                         qint64 present_interval_us,
-                                        qint64 present_submit_interval_us)
+                                        qint64 present_submit_interval_us, qint64 video_pts)
 {
     if (!vulkan_deferred_swap_enabled || !deferred_swap_thread || render_backend != RenderBackend::Vulkan || !placebo_swapchain)
         return false;
     DeferredSwapTask task;
     task.submit_request_us = submit_begin_us;
+    task.video_pts = video_pts;
     task.queue_depth_at_submit = queue_depth_at_submit;
     task.depth_limit = depth_limit;
     task.pending_frame_waiting = pending_frame_waiting;
@@ -5745,7 +5755,7 @@ void QmlMainWindow::processDeferredSwapTask(qint64 submit_begin_us,
                                             bool pending_frame_waiting,
                                             bool pending_overflow_waiting,
                                             qint64 present_interval_us,
-                                            qint64 present_submit_interval_us)
+                                            qint64 present_submit_interval_us, qint64 video_pts)
 {
     auto snapshot_render_schedule_state = [this]() {
         QMutexLocker locker(&render_schedule_mutex);
@@ -5820,6 +5830,7 @@ void QmlMainWindow::processDeferredSwapTask(qint64 submit_begin_us,
             if (present_swap_begin_us >= submit_us)
                 logLatencyStats("submit_to_swap", present_swap_begin_us - submit_us);
             pl_swapchain_swap_buffers(placebo_swapchain);
+            presentation_rate.presented(video_pts, chiaki_time_now_monotonic_us());
 
             const qint64 swap_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
             logSwapInterval(swap_us);
@@ -7094,7 +7105,7 @@ void QmlMainWindow::render()
     if (render_entry_us_local > 0 && render_to_start_frame_us >= render_entry_us_local)
         logLatencyStats("render_to_start_frame", render_to_start_frame_us - render_entry_us_local);
     // Submit immediately and let the swapchain / render path enforce pacing.
-    auto close_started_frame = [this, timer_owned_playback, present_interval_us, start_frame_us, depth_limit, pending_frame_waiting, pending_overflow_waiting, snapshotQueueDepth, snapshotRenderScheduleState, present_submit_interval_s](bool present) -> bool {
+    auto close_started_frame = [this, timer_owned_playback, present_interval_us, start_frame_us, depth_limit, pending_frame_waiting, pending_overflow_waiting, snapshotQueueDepth, snapshotRenderScheduleState, present_submit_interval_s](bool present, qint64 video_pts = StreamFps::noFrame) -> bool {
         const qint64 submit_ready_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
         const int queue_depth_now = snapshotQueueDepth();
         if (detailedVerboseTelemetryEnabled()) {
@@ -7164,7 +7175,7 @@ void QmlMainWindow::render()
                                                             pending_frame_waiting,
                                                             pending_overflow_waiting,
                                                             present_interval_us,
-                                                            static_cast<qint64>(qMax(1.0, present_submit_interval_s * 1000000.0) + 0.5));
+                                                            static_cast<qint64>(qMax(1.0, present_submit_interval_s * 1000000.0) + 0.5), video_pts);
             if (async_enqueued) {
                 async_present_completion = true;
                 present_complete_us = submit_ready_us;
@@ -7173,11 +7184,13 @@ void QmlMainWindow::render()
         if (!async_present_completion) {
             const qint64 submit_begin_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
             qint64 submit_us = submit_begin_us;
+            bool submitted = false;
             {
                 QMutexLocker locker(&placebo_swapchain_mutex);
                 if (!pl_swapchain_submit_frame(placebo_swapchain))
                     qCWarning(chiakiGui) << "Failed to submit Placebo frame!";
                 else {
+                    submitted = true;
                     confirmVulkanStartup();
                     submit_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
             logLatencyStats("pl_swapchain_submit_frame", submit_us - submit_begin_us);
@@ -7241,6 +7254,8 @@ void QmlMainWindow::render()
                 {
                     QMutexLocker locker(&placebo_swapchain_mutex);
                     pl_swapchain_swap_buffers(placebo_swapchain);
+                    if (submitted)
+                        presentation_rate.presented(video_pts, chiaki_time_now_monotonic_us());
                 }
                 const qint64 swap_us = static_cast<qint64>(chiaki_time_now_monotonic_us());
                 logSwapInterval(swap_us);
@@ -7657,7 +7672,9 @@ void QmlMainWindow::render()
                 logLatencyStats("render_work", render_after_us - render_entry_us_local);
         }
     }
-    close_started_frame(true);
+    const AVFrame *source = hint_frame && hint_frame->user_data ? pl_get_mapped_avframe(hint_frame) : nullptr;
+    const qint64 video_pts = source && stream_session_active.loadAcquire() ? source->pts : StreamFps::noFrame;
+    close_started_frame(true, video_pts);
 
     if (startup_video_visible_refresh_pending.loadAcquire() != 0) {
         loading_transition_complete.storeRelease(1);

@@ -30,6 +30,7 @@ class QmlSettings : public QObject
     Q_PROPERTY(int noiseSuppressLevel READ noiseSuppressLevel WRITE setNoiseSuppressLevel NOTIFY noiseSuppressLevelChanged)
     Q_PROPERTY(int echoSuppressLevel READ echoSuppressLevel WRITE setEchoSuppressLevel NOTIFY echoSuppressLevelChanged)
 #endif
+    Q_PROPERTY(bool showFps READ showFps WRITE setShowFps NOTIFY showFpsChanged)
     Q_PROPERTY(bool showStreamStats READ showStreamStats WRITE setShowStreamStats NOTIFY showStreamStatsChanged)
     Q_PROPERTY(bool streamerMode READ streamerMode WRITE setStreamerMode NOTIFY streamerModeChanged)
     Q_PROPERTY(float hapticOverride READ hapticOverride WRITE setHapticOverride NOTIFY hapticOverrideChanged)
@@ -177,6 +178,8 @@ public:
     int audioVideoDisabled() const;
     void setAudioVideoDisabled(int disabled);
 
+    bool showFps() const;
+    void setShowFps(bool enabled);
     bool showStreamStats() const;
     void setShowStreamStats(bool enabled);
 
@@ -640,6 +643,7 @@ signals:
     void hideCursorChanged();
     void hapticOverrideChanged();
     void audioVideoDisabledChanged();
+    void showFpsChanged();
     void showStreamStatsChanged();
     void streamerModeChanged();
     void fpsLocalPS4Changed();

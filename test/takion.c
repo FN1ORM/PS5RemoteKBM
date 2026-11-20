@@ -10,6 +10,7 @@
 #include "../lib/src/takionsendbuffer.c"
 
 #include "test_log.h"
+#include "../lib/src/takion_av_reorder.h"
 
 #ifndef _WIN32
 #include <arpa/inet.h>
@@ -326,7 +327,29 @@ static MunitResult test_takion_send_after_receive_error(const MunitParameter par
 #endif
 }
 
+static MunitResult test_video_gap_deadline(const MunitParameter params[], void *user)
+{
+	ChiakiReorderQueue queue;
+	munit_assert_int(chiaki_reorder_queue_init_16(&queue, 6, 65534), ==, CHIAKI_ERR_SUCCESS);
+	TakionAVPacketEntry first = { .received_us = 1000 }, second = { .received_us = 2000 };
+	chiaki_reorder_queue_push(&queue, 65535, &first);
+	chiaki_reorder_queue_push(&queue, 1, &second);
+	int64_t start = 0;
+	uint64_t seq = 0;
+	munit_assert_uint64(takion_av_expired_gap(&queue, 16999, &start, &seq), ==, 0);
+	munit_assert_uint64(takion_av_expired_gap(&queue, 17000, &start, &seq), ==, 1);
+	queue.begin = 65535;
+	queue.count--;
+	munit_assert(chiaki_reorder_queue_pull(&queue, NULL, NULL));
+	munit_assert_uint64(takion_av_expired_gap(&queue, 17000, &start, &seq), ==, 0);
+	munit_assert_int64(start, ==, 2000);
+	munit_assert_uint64(takion_av_expired_gap(&queue, 18000, &start, &seq), ==, 1);
+	chiaki_reorder_queue_fini(&queue);
+	return MUNIT_OK;
+}
+
 MunitTest tests_takion[] = {
+	{ "/video_gap_deadline", test_video_gap_deadline, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL },
 	{
 		"/av_packet_parse",
 		test_av_packet_parse,

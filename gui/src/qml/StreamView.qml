@@ -266,6 +266,26 @@ Item {
         Keys.onEscapePressed: root.showMainView()
     }
 
+    Rectangle {
+        objectName: "streamFpsBadge"
+        anchors { top: parent.top; left: parent.left; margins: 8 }
+        width: fpsText.implicitWidth + 14
+        height: fpsText.implicitHeight + 6
+        radius: 4
+        color: "#b0181c1b"
+        visible: Chiaki.settings.showFps && !!Chiaki.session && Chiaki.session.connected
+                 && Chiaki.window.hasVideo && !view.sessionLoading && !view.sessionError
+                 && !menuController.open && !root.streamPanelOpen && !Chiaki.session.cantDisplay
+                 && !(Chiaki.settings.audioVideoDisabled & 0x02)
+        Text {
+            id: fpsText
+            anchors.centerIn: parent
+            text: qsTr("%1 FPS").arg(Chiaki.window.streamFps >= 0 ? Chiaki.window.streamFps : "–")
+            font.pixelSize: 13
+            color: "white"
+        }
+    }
+
     ColumnLayout {
         id: cantDisplayMessage
         anchors.centerIn: parent

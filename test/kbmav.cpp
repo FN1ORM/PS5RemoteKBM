@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
+#include "../gui/include/streamfps.h"
 #include <SDL.h>
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -8,6 +9,19 @@ extern "C" {
 #include <cstdio>
 #include <initializer_list>
 int main(int, char**) {
+    StreamFps counter;
+    counter.presented(StreamFps::noFrame, 0);
+    if (counter.sample(1000000) != -1) return 8;
+    // 30 video frames per second on a display that redraws each frame twice.
+    for (int i = 0; i <= 45; ++i) {
+        int64_t now = 1000000 + i * 1000000LL / 30;
+        counter.presented(i, now);
+        counter.presented(i, now + 10000);
+    }
+    if (counter.sample(2500000) != 30 || counter.sample(3500000) != 0) return 9;
+    counter.reset();
+    if (counter.sample(4500000) != -1) return 10;
+    std::puts("PASS: presentation FPS excludes redraws and handles stalls and reconnects");
     for(auto id:{AV_CODEC_ID_H264,AV_CODEC_ID_HEVC}) {
         auto codec=avcodec_find_decoder(id); if(!codec) return 1;
         auto context=avcodec_alloc_context3(codec); if(!context) return 2;

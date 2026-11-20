@@ -36,6 +36,7 @@ QtObject {
         property string psnAccountId: "AAAAAAAAAAA="
         property string currentProfile: ""
         property string psnAuthToken: ""
+        property bool showFps: true
         property bool showStreamStats: false
         property int audioVideoDisabled: 0
         property int wifiDroppedNotif: 5
@@ -279,6 +280,7 @@ Window {
     property bool hasVideo: true
     property bool keepVideo: true
     property bool loadingTransitionComplete: true
+    property int streamFps: 29
     property int droppedFrames: 1
     property int videoMode: 0
     property int videoPreset: 0
@@ -301,6 +303,17 @@ Window {
     check(engine.rootObjects().size() == 4, "stream view loads");
     auto streamWindow = qobject_cast<QQuickWindow *>(engine.rootObjects().last());
     settle();
+    auto badge = streamWindow->findChild<QQuickItem *>("streamFpsBadge");
+    check(badge && !badge->isVisible(), "FPS stays hidden while connecting");
+    badge->parentItem()->setProperty("sessionLoading", false);
+    settle();
+    check(badge->isVisible() && badge->x() == 8 && badge->y() == 8, "FPS appears at the top left during video");
+    auto chiaki = engine.singletonInstance<QObject *>(qmlTypeId("org.streetpea.chiaking", 1, 0, "Chiaki"));
+    auto fpsSettings = chiaki->property("settings").value<QObject *>();
+    fpsSettings->setProperty("showFps", false);
+    check(!badge->isVisible(), "FPS can be hidden independently of the stats overlay");
+    fpsSettings->setProperty("showFps", true);
+    check(badge->isVisible(), "FPS can be restored during playback");
     auto menuController = streamWindow->findChild<QObject *>("streamMenuController");
     auto menuWindow = streamWindow->findChild<QQuickWindow *>("separateStreamMenu");
     check(menuController && menuWindow, "both stream-menu presentations are available");

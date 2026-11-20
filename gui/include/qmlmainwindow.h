@@ -2,6 +2,7 @@
 
 #include "streamsession.h"
 #include "settings.h"
+#include "streamfps.h"
 
 #include <QMutex>
 #include <QAtomicInteger>
@@ -58,6 +59,7 @@ class QmlMainWindow : public QWindow
 {
     Q_OBJECT
     Q_PROPERTY(bool hasVideo READ hasVideo NOTIFY hasVideoChanged)
+    Q_PROPERTY(int streamFps READ streamFps NOTIFY streamFpsChanged)
     Q_PROPERTY(int droppedFrames READ droppedFrames NOTIFY droppedFramesChanged)
     Q_PROPERTY(bool keepVideo READ keepVideo WRITE setKeepVideo NOTIFY keepVideoChanged)
     Q_PROPERTY(bool loadingTransitionComplete READ loadingTransitionComplete NOTIFY loadingTransitionCompleteChanged)
@@ -116,6 +118,7 @@ public:
 
     bool hasVideo() const;
     int droppedFrames() const;
+    int streamFps() const { return stream_fps; }
     void increaseDroppedFrames();
 
     bool directStream() const;
@@ -179,6 +182,7 @@ public slots:
 signals:
     void hasVideoChanged();
     void droppedFramesChanged();
+    void streamFpsChanged();
     void keepVideoChanged();
     void videoModeChanged();
     void zoomFactorChanged();
@@ -221,7 +225,7 @@ private:
                              bool pending_frame_waiting,
                              bool pending_overflow_waiting,
                              qint64 present_interval_us,
-                             qint64 present_submit_interval_us);
+                             qint64 present_submit_interval_us, qint64 video_pts);
     void finalizeDeferredPresentIfIdle();
     void processDeferredSwapTask(qint64 submit_begin_us,
                                  int queue_depth_at_submit,
@@ -229,7 +233,7 @@ private:
                                  bool pending_frame_waiting,
                                  bool pending_overflow_waiting,
                                  qint64 present_interval_us,
-                                 qint64 present_submit_interval_us);
+                                 qint64 present_submit_interval_us, qint64 video_pts);
     void drainDeferredSwaps();
     void setStreamMaxFPS(unsigned int max_fps);
     void createSwapchain();
@@ -324,6 +328,8 @@ private:
     KbmInput *native_input = nullptr;
     int grab_input = 0;
     int dropped_frames = 0;
+    StreamFps presentation_rate;
+    int stream_fps = -1;
     bool is_window_adjustable = false;
     bool is_stream_window_adjustable = false;
     QAtomicInteger<int> dropped_frames_current = 0;

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 
 #include "chiaki/feedback.h"
+#include "takion_av_reorder.h"
 #include <chiaki/takion.h>
 #include <chiaki/congestioncontrol.h>
 #include <chiaki/random.h>
@@ -44,7 +45,6 @@
 
 #define TAKION_REORDER_QUEUE_SIZE_EXP 4 // => 16 entries
 #define TAKION_AV_VIDEO_REORDER_QUEUE_SIZE_EXP 6 // => 64 entries
-#define TAKION_AV_REORDER_TIMEOUT_US 16000 // ~1 frame at 60fps
 
 #define TAKION_POSTPONE_PACKETS_SIZE 32
 
@@ -159,13 +159,6 @@ typedef struct
 	uint16_t channel;
 } TakionDataPacketEntry;
 
-typedef struct
-{
-	uint8_t base_type;
-	uint8_t *buf;
-	size_t buf_size;
-	ChiakiTakionAVPacket packet;
-} TakionAVPacketEntry;
 
 typedef struct chiaki_takion_postponed_packet_t
 {
@@ -1007,46 +1000,8 @@ static void takion_av_queue_flush_with_timeout(ChiakiTakion *takion, ChiakiReord
 		if(chiaki_reorder_queue_count(queue) == 0)
 			break;
 
-		if(*head_wait_start_us != 0 && queue->begin != *head_wait_seq_num)
-		{
-			if(queue->seq_num_gt(queue->begin, *head_wait_seq_num))
-			{
-				// The missing head advanced within the same loss burst. Keep the
-				// original timeout budget but track the new missing sequence.
-				*head_wait_seq_num = queue->begin;
-			}
-			else
-			{
-				// A genuinely new gap appeared; start a fresh timeout window.
-				*head_wait_start_us = now;
-				*head_wait_seq_num = queue->begin;
-				break;
-			}
-		}
-
-		// Head slot is missing (packet lost or not yet arrived)
-		if(*head_wait_start_us == 0)
-		{
-			*head_wait_start_us = now;
-			*head_wait_seq_num = queue->begin;
-			break;
-		}
-
-		if(now - *head_wait_start_us <= TAKION_AV_REORDER_TIMEOUT_US)
-			break;
-
-		// Timeout exceeded: skip directly to the first buffered packet so startup
-		// and burst reordering only pay a single timeout.
-		uint64_t skipped = 0;
-		while(skipped < queue->count)
-		{
-			uint64_t seq_num_peek;
-			void *entry_user;
-			if(chiaki_reorder_queue_peek(queue, skipped, &seq_num_peek, &entry_user))
-				break;
-			skipped++;
-		}
-		if(skipped >= queue->count)
+		uint64_t skipped = takion_av_expired_gap(queue, now, head_wait_start_us, head_wait_seq_num);
+		if(!skipped)
 			break;
 
 		CHIAKI_LOGD(takion->log, "Takion AV reorder timeout: skipping %llu missing packet(s) before %#llx",
@@ -1746,6 +1701,7 @@ static void takion_handle_packet_av(ChiakiTakion *takion, uint8_t base_type, uin
 		free(buf);
 		return;
 	}
+	entry->received_us = chiaki_time_now_monotonic_us();
 	entry->base_type = base_type;
 	entry->buf = buf;
 	entry->buf_size = buf_size;
