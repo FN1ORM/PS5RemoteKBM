@@ -1,5 +1,6 @@
-# PS5 Remote KBM maintenance
+# KeyStream maintenance
 
-- Keep the current Windows install at `dist/PS5RemoteKBM-win-x64`. Stage builds outside that folder, verify them, then update that same install.
-- Preserve shipped versions with `kbm-*` Git tags and assets in the private `FN1ORM/PS5RemoteKBM` GitHub repository. Push the personal branch and release tag after each verified update.
-- Keep the upstream chiaki-ng remote for fetching upstream changes. Exclude account data, logs, crash dumps, and local settings from Git and release assets.
+- Keep the current Windows install at `dist/PS5RemoteKBM-win-x64`. Stage builds outside that folder and verify them before updating the install.
+- Push verified updates to `personal/native-kbm` on the `personal` remote, the public `FN1ORM/PS5RemoteKBM` repository. Preserve shipped versions with `kbm-*` tags so they remain easy to restore.
+- Use a GitHub-provided no-reply address for author and committer metadata in public commits. Keep the `origin` remote for fetching upstream chiaki-ng changes.
+- Review staged changes and any release packages before publishing. Exclude account data, credentials, PINs, logs, crash dumps, local settings, and personal paths. Keep local builds out of Git and use GitHub Release assets for distributable packages.
