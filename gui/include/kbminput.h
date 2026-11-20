@@ -28,6 +28,7 @@ class KbmInput : public QObject, public QAbstractNativeEventFilter {
     bool captured=false, testing=false, local_test_mode=false;
     int binding=-1;
     std::function<void()> rebuildBindings;
+    void buildControls(int initialPage, int initialAction);
     void load();
     void save();
     void defaults();

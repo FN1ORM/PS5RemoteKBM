@@ -24,6 +24,7 @@ set(SOURCE_FILES
 	include/kbmengine.h
 	include/kbmsecrets.h
 	src/kbminput.cpp
+	src/kbmcontrolmap.cpp
 	src/kbmconnection.cpp
 	include/exception.h
 	src/main.cpp

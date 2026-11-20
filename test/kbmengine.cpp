@@ -55,6 +55,11 @@ int main() {
         check((r.buttons&(1u<<action))!=0,"digital mapping");
         e.key(action,Action(action),false);
     }
+    e.key(14, Touchpad, true);
+    check(e.tick(.015).buttons == CHIAKI_CONTROLLER_BUTTON_TOUCHPAD, "touchpad press sends the PS5 click bit");
+    check(e.tick(.016).buttons == CHIAKI_CONTROLLER_BUTTON_TOUCHPAD, "touchpad click stays held");
+    e.key(14, Touchpad, false);
+    check(e.tick(.017).buttons == 0, "touchpad release clears the PS5 click bit");
     e.key(1,L2,true); e.key(2,R2,true); r=e.tick(.02); check(r.l2==255 && r.r2==255,"triggers");
     e.key(3,L2,true); e.key(1,L2,false); r=e.tick(.03); check(r.l2==255,"shared binding hold");
     e.key(3,L2,true); e.key(3,L2,false); r=e.tick(.04); check(r.l2==0,"repeat idempotent");

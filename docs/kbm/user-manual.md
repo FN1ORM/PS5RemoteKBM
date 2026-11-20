@@ -299,7 +299,9 @@ Control is deliberately unarmed until F1. Switching applications, losing focus, 
 
 F2 saves settings as you change them. To make a separate setup for a game, use **Save as** first, name it and change that profile. Input profiles are independent of the app's video/console configuration profiles. The local **Test capture** mode displays stick/button/trigger reports without sending them to a console. Escape exits capture.
 
-Click a binding and press a key to change it. Clear removes it. You can also assign one of five mouse buttons. Escape and F1–F4 are reserved. Left/right Shift and Ctrl share Qt's corresponding key binding.
+In **F2 → Picture**, select a controller label or its location on the picture. Stick, face-button and D-pad labels open a menu of individual actions. **List** shows every assignment together. Select a control in either view, click its **Keyboard** binding and press the new key. Clear removes it. You can also assign one of five mouse buttons. Escape and F1–F4 are reserved. Left/right Shift and Ctrl share Qt's corresponding key binding.
+
+**Touchpad click** defaults to **Tab** during keyboard capture. Press and hold for a held click, then release. To check it locally, select **F2 → Input test → Test capture** and hold the assigned key. The touchpad indicator reads **Pressed** while held. A physical controller that reports a touchpad button can send its click directly.
 
 ### Watch someone play on the PS5
 

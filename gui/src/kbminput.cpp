@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 #include "kbminput.h"
 #include "kbmprofiles.h"
+#include "kbmcontrolmap.h"
 #include "kbmwidgets.h"
 #include "qmlmainwindow.h"
 #include "streamsession.h"
@@ -24,16 +25,16 @@
 #include <QMessageBox>
 #include <QPainter>
 #include <QDebug>
+#include <QHeaderView>
+#include <QSignalBlocker>
+#include <QTabWidget>
+#include <QTreeWidget>
 #include <QScreen>
 #ifdef Q_OS_WIN
 #include <windows.h>
 #endif
 
 namespace {
-const char *names[kbm::Count]={"Cross","Circle","Square","Triangle","D-pad left","D-pad right",
-    "D-pad up","D-pad down","L1","R1","L3","R3","Options","Share","Touchpad click","PS",
-    "L2","R2","Move up","Move down","Move left","Move right","Walk",
-    "Right stick up","Right stick down","Right stick left","Right stick right"};
 class StickPreview : public QWidget {
 public:
     kbm::Report report;
@@ -41,12 +42,15 @@ public:
     explicit StickPreview(QWidget *p):QWidget(p) { setMinimumSize(280,160); setFocusPolicy(Qt::StrongFocus); }
     void paintEvent(QPaintEvent*) override {
         QPainter p(this); p.setRenderHint(QPainter::Antialiasing); p.fillRect(rect(),QColor(25,29,37));
-        p.setPen(Qt::white); p.drawText(12,22,captured?"CAPTURED — Esc releases":"Released — click Test capture below");
+        const bool touchDown = report.buttons & CHIAKI_CONTROLLER_BUTTON_TOUCHPAD;
+        p.setPen(touchDown ? QColor("#83edbf") : QColor("#d0dad5"));
+        p.drawText(QRect(0, 8, width(), 22), Qt::AlignCenter,
+                   touchDown ? "Touchpad click  ·  Pressed" : "Touchpad click  ·  Released");
         for(int n=0;n<2;++n) {
             QPointF center(width()*(n?.72:.28),93); p.setPen(QColor(140,150,170)); p.drawEllipse(center,42,42);
             const double x=(n?report.rx:report.lx)/32767.0, y=(n?report.ry:report.ly)/32767.0;
             p.setBrush(QColor(0,170,255)); p.drawEllipse(center+QPointF(x*38,y*38),5,5); p.setBrush(Qt::NoBrush);
-            p.drawText(QRectF(center.x()-85,139,170,20),Qt::AlignCenter,n?"Right stick / mouse + keys":"Left stick / WASD");
+            p.drawText(QRectF(center.x()-85,139,170,20),Qt::AlignCenter,n?"Right stick":"Left stick");
         }
     }
 };
@@ -104,7 +108,7 @@ void KbmInput::release() {
     if(wasCaptured) { window->setCursor(Qt::ArrowCursor); if(preview) preview->unsetCursor(); }
     if(wasCaptured) qInfo("Native input released; all controls neutral");
     if(preview) { auto p=static_cast<StickPreview*>(preview); p->captured=false; p->report={}; p->update(); }
-    if(status) status->setText("Released. F1 captures in the stream; Esc always releases. F2 opens controls.");
+    if(status) status->setText("Released. Choose Test capture to try your bindings locally.");
 }
 bool KbmInput::capture(bool test) {
     release();
@@ -168,13 +172,23 @@ bool KbmInput::nativeEventFilter(const QByteArray&,void *message,qintptr*) {
 bool KbmInput::eventFilter(QObject *object,QEvent *event) {
     if(object==window && (event->type()==QEvent::FocusOut || event->type()==QEvent::WindowDeactivate
         || event->type()==QEvent::Hide || event->type()==QEvent::Move || event->type()==QEvent::Resize || event->type()==QEvent::WindowStateChange)) release();
+    if (binding >= 0 && ((event->type() == QEvent::FocusOut && object->objectName() == "keyBinding")
+            || (event->type() == QEvent::WindowDeactivate && object == dialog))) {
+        binding = -1;
+        if (rebuildBindings) rebuildBindings();
+    }
     if(testing && object==preview && (event->type()==QEvent::FocusOut || event->type()==QEvent::Hide)) release();
     if(event->type()==QEvent::KeyPress || event->type()==QEvent::KeyRelease) {
         auto e=static_cast<QKeyEvent*>(event); bool down=event->type()==QEvent::KeyPress;
         if(binding>=0 && down && !e->isAutoRepeat()) {
             const int key=KbmProfiles::bindingKey(e->key(),e->modifiers());
-            if(!KbmProfiles::reservedKey(key)) keys[binding]=key;
-            binding=-1; if(rebuildBindings) rebuildBindings(); save(); return true;
+            if (!KbmProfiles::reservedKey(key)) {
+                keys[binding] = key;
+                save();
+            }
+            binding = -1;
+            if (rebuildBindings) rebuildBindings();
+            return true;
         }
         if(object==window && down && !e->isAutoRepeat() && e->key()==Qt::Key_F2) {showControls(); return true;}
         if (object == window && session && e->key() == Qt::Key_F5 && e->modifiers() == Qt::AltModifier) {
@@ -216,14 +230,77 @@ bool KbmInput::eventFilter(QObject *object,QEvent *event) {
 void KbmInput::showControls() {
     release();
     if(dialog) {dialog->show(); dialog->raise(); dialog->activateWindow(); return;}
-    dialog=new QDialog; styleKbmDialog(dialog); dialog->setWindowTitle("KeyStream — Controls and local input test"); dialog->resize(620,760);
-    if(window->screen()) dialog->resize(dialog->size().boundedTo(window->screen()->availableGeometry().size()-QSize(40,60)));
-    auto layout=new QVBoxLayout(dialog);
-    auto help=new QLabel("F1 captures during streaming. Esc, Alt+Tab, focus loss and disconnect release all input.\nHold Num 8 / 2 / 4 / 6 for the right stick, or combine two for a diagonal. F2 opens this panel."); help->setWordWrap(true); layout->addWidget(help);
-    auto row=new QHBoxLayout; auto profiles=new QComboBox; auto s=controlsSettings(); s.beginGroup("profiles");
-    auto list=s.childGroups(); if(!list.contains(profile)) list.prepend(profile); profiles->addItems(list); profiles->setCurrentText(profile);
-    row->addWidget(new QLabel("Profile")); row->addWidget(profiles,1); auto add=new QPushButton("Save as…"); auto reset=new QPushButton("Reset defaults"); row->addWidget(add); row->addWidget(reset); layout->addLayout(row);
-    auto scroll=new QScrollArea; scroll->setWidgetResizable(true); auto body=new QWidget; auto form=new QFormLayout(body); form->setRowWrapPolicy(QFormLayout::WrapLongRows); scroll->setWidget(body); layout->addWidget(scroll,1);
+    buildControls(0, kbm::Touchpad);
+}
+
+void KbmInput::buildControls(int initialPage, int initialAction)
+{
+    dialog = new QDialog;
+    styleKbmDialog(dialog);
+    dialog->setWindowTitle("KeyStream — Control mapping");
+    dialog->setStyleSheet(dialog->styleSheet() + QStringLiteral(
+        "QTabWidget::pane { border: 1px solid #3b4f47; background: #101917; }"
+        "QTabBar::tab { background: #202725; color: #b8c9c1; padding: 8px 16px; }"
+        "QTabBar::tab:selected { color: #8de2c1; border-bottom: 2px solid #78dfb6; }"
+        "QPushButton#mapCallout { background: #1b2824; color: #d1dfd8; border: 1px solid #42584d; padding: 2px; }"
+        "QPushButton#mapCallout:checked { color: #a0f1d2; background: #223d32; border-color: #83deba; }"
+        "QPushButton#mapCallout:hover, QPushButton#mapCallout:focus { border-color: #b1f5dc; }"
+        "QTreeWidget { background: #17201d; alternate-background-color: #1b2622; border: 0; }"
+        "QTreeWidget::item { padding: 5px; } QTreeWidget::item:selected { background: #315644; color: white; }"
+        "QHeaderView::section { background: #25342e; color: #c5d6cc; padding: 6px; border: 0; }"
+        "QPushButton#keyBinding { border-color: #75bc9d; color: #b9f2d8; }"));
+    dialog->resize(900, 650);
+    if (window->screen())
+        dialog->resize(dialog->size().boundedTo(window->screen()->availableGeometry().size() - QSize(40, 60)));
+    auto layout = new QVBoxLayout(dialog);
+    layout->setContentsMargins(16, 12, 16, 12);
+    layout->setSpacing(9);
+    auto title = new QLabel("Control mapping");
+    auto titleFont = title->font();
+    titleFont.setPointSize(18);
+    titleFont.setBold(true);
+    title->setFont(titleFont);
+    layout->addWidget(title);
+    auto row = new QHBoxLayout;
+    auto profiles = new QComboBox;
+    auto s = controlsSettings();
+    s.beginGroup("profiles");
+    auto list = s.childGroups();
+    if (!list.contains(profile)) list.prepend(profile);
+    profiles->addItems(list);
+    profiles->setCurrentText(profile);
+    row->addWidget(new QLabel("Profile"));
+    row->addWidget(profiles, 1);
+    auto add = new QPushButton("Save as…");
+    auto reset = new QPushButton("Reset defaults");
+    row->addWidget(add);
+    row->addWidget(reset);
+    layout->addLayout(row);
+
+    auto tabs = new QTabWidget;
+    layout->addWidget(tabs, 1);
+    auto actions = new QComboBox;
+    for (int a = 0; a < kbm::Count; ++a)
+        actions->addItem(kbmActionName(kbm::Action(a)));
+    auto picture = new KbmControlMap([actions](kbm::Action a) { actions->setCurrentIndex(a); });
+    tabs->addTab(picture, "Picture");
+    auto table = new QTreeWidget;
+    table->setHeaderLabels({"Control", "Keyboard", "Mouse button"});
+    table->setRootIsDecorated(false);
+    table->setAlternatingRowColors(true);
+    table->setUniformRowHeights(true);
+    table->header()->setSectionResizeMode(QHeaderView::Stretch);
+    for (int a = 0; a < kbm::Count; ++a)
+        new QTreeWidgetItem(table, {kbmActionName(kbm::Action(a))});
+    tabs->addTab(table, "List");
+
+    auto scroll = new QScrollArea;
+    scroll->setWidgetResizable(true);
+    auto body = new QWidget;
+    auto form = new QFormLayout(body);
+    form->setRowWrapPolicy(QFormLayout::WrapLongRows);
+    scroll->setWidget(body);
+    tabs->addTab(scroll, "Mouse tuning");
     auto &c=engine.config;
     auto numeric=[&](const char *label,double &value,double lo,double hi,double step) {
         auto spin=new QDoubleSpinBox; spin->setRange(lo,hi); spin->setDecimals(3); spin->setSingleStep(step); spin->setValue(value);
@@ -233,28 +310,118 @@ void KbmInput::showControls() {
     numeric("Response exponent (1 = linear)",c.exponent,.2,4,.1); numeric("Deadzone",c.deadzone,0,.95,.01);
     numeric("Anti-deadzone",c.antiDeadzone,0,1,.01); numeric("Maximum stick output",c.maximum,.05,1,.05);
     numeric("Smoothing window (ms)",c.smoothingMs,0,200,1); numeric("Recenter ramp (ms)",c.recenterMs,0,500,1);
-    numeric("Walking tilt (hold Ctrl)",c.walkTilt,.05,1,.05);
+    numeric("Walking tilt",c.walkTilt,.05,1,.05);
     auto invert=new QCheckBox; invert->setChecked(c.invertY); connect(invert,&QCheckBox::toggled,this,[this](bool v){release();engine.config.invertY=v;save();}); form->addRow("Invert Y",invert);
     auto rolling=new QCheckBox;rolling->setChecked(c.rollingWindow);
     connect(rolling,&QCheckBox::toggled,this,[this](bool v){release();engine.config.rollingWindow=v;save();});
     form->addRow("Rolling mouse window (less stop drift)",rolling);
     auto precise=new QPushButton("Precise mouse preset (8 ms, no recenter tail)");form->addRow(precise);
     auto smooth=new QPushButton("Smooth stick preset (16 ms, 35 ms tail)");form->addRow(smooth);
-    QList<QPushButton*> keyLabels;
-    for(int a=0;a<kbm::Count;++a) {
-        auto line=new QHBoxLayout; auto button=new QPushButton; keyLabels.append(button); line->addWidget(button,1);
-        auto clear=new QPushButton("Clear"); line->addWidget(clear); auto mouse=new QComboBox; mouse->addItems({"No mouse","Left","Right","Middle","Side 1","Side 2"});
-        mouse->setCurrentIndex(std::max(0,std::min(5,mouseButtons.value(a)))); line->addWidget(mouse);
-        connect(button,&QPushButton::clicked,this,[this,a,button]{binding=a;button->setText("Press one key… Esc cancels");});
-        connect(clear,&QPushButton::clicked,this,[this,a]{keys[a]=0;save();if(rebuildBindings)rebuildBindings();});
-        connect(mouse,&QComboBox::currentIndexChanged,this,[this,a](int n){release();mouseButtons[a]=n;save();}); form->addRow(names[a],line);
-    }
-    rebuildBindings=[this,keyLabels]{for(int a=0;a<kbm::Count;++a) keyLabels[a]->setText(keys.value(a)?QKeySequence(keys.value(a)).toString():"Unbound");}; rebuildBindings();
-    preview=new StickPreview(dialog); layout->addWidget(preview);
-    status=new QLabel("Released. Test capture sends no console input."); status->setWordWrap(true); layout->addWidget(status);
-    auto test=new QPushButton("Test capture (Esc releases)"); layout->addWidget(test); connect(test,&QPushButton::clicked,this,[this]{capture(true);});
-    auto close=new QPushButton("Close"); layout->addWidget(close); connect(close,&QPushButton::clicked,dialog,&QDialog::reject);
-    auto recreate=[this]{release();binding=-1;rebuildBindings={};auto old=dialog;dialog=nullptr;preview=nullptr;status=nullptr;old->hide();old->deleteLater();showControls();};
+    auto testPage = new QWidget;
+    auto testLayout = new QVBoxLayout(testPage);
+    preview = new StickPreview(testPage);
+    testLayout->addWidget(preview);
+    status = new QLabel("Choose Test capture, then try a binding. Esc releases input.");
+    status->setWordWrap(true);
+    testLayout->addWidget(status);
+    auto test = new QPushButton("Test capture");
+    testLayout->addWidget(test, 0, Qt::AlignLeft);
+    testLayout->addStretch();
+    connect(test, &QPushButton::clicked, this, [this] { capture(true); });
+    tabs->addTab(testPage, "Input test");
+
+    auto editor = new QWidget;
+    auto grid = new QGridLayout(editor);
+    grid->setContentsMargins(0, 4, 0, 0);
+    grid->addWidget(new QLabel("Control"), 0, 0);
+    grid->addWidget(new QLabel("Keyboard"), 0, 1);
+    grid->addWidget(new QLabel("Mouse button"), 0, 3);
+    auto key = new QPushButton;
+    key->setObjectName("keyBinding");
+    key->setToolTip("Click, then press a key. Esc cancels.");
+    auto clear = new QPushButton("Clear");
+    clear->setAccessibleName("Clear keyboard binding");
+    auto mouse = new QComboBox;
+    mouse->addItems({"Unbound", "Left", "Right", "Middle", "Side 1", "Side 2"});
+    grid->addWidget(actions, 1, 0);
+    grid->addWidget(key, 1, 1);
+    grid->addWidget(clear, 1, 2);
+    grid->addWidget(mouse, 1, 3);
+    grid->setColumnStretch(0, 3);
+    grid->setColumnStretch(1, 2);
+    grid->setColumnStretch(3, 2);
+    layout->addWidget(editor);
+    auto footer = new QHBoxLayout;
+    auto hint = new QLabel("Select a control, then click its keyboard or mouse binding.");
+    hint->setWordWrap(true);
+    footer->addWidget(hint, 1);
+    auto close = new QPushButton("Close");
+    footer->addWidget(close);
+    layout->addLayout(footer);
+    connect(close, &QPushButton::clicked, dialog, &QDialog::reject);
+
+    rebuildBindings = [this, actions, table, picture, key, mouse, clear] {
+        const int selected = actions->currentIndex();
+        const QSignalBlocker blockTable(table), blockMouse(mouse);
+        for (int a = 0; a < kbm::Count; ++a) {
+            auto item = table->topLevelItem(a);
+            item->setText(1, keys.value(a) ? QKeySequence(keys.value(a)).toString(QKeySequence::NativeText) : "Unbound");
+            item->setText(2, mouse->itemText(mouseButtons.value(a)));
+        }
+        table->setCurrentItem(table->topLevelItem(selected));
+        picture->setAction(kbm::Action(selected));
+        key->setText(binding == selected ? "Press a key…" : table->topLevelItem(selected)->text(1));
+        clear->setEnabled(keys.value(selected) != 0);
+        mouse->setCurrentIndex(mouseButtons.value(selected));
+    };
+    connect(actions, &QComboBox::currentIndexChanged, dialog, [this] { binding = -1; rebuildBindings(); });
+    connect(table, &QTreeWidget::currentItemChanged, dialog, [table, actions](QTreeWidgetItem *item) {
+        if (item) actions->setCurrentIndex(table->indexOfTopLevelItem(item));
+    });
+    connect(key, &QPushButton::clicked, dialog, [this, actions] {
+        binding = actions->currentIndex();
+        rebuildBindings();
+    });
+    connect(clear, &QPushButton::clicked, dialog, [this, actions] {
+        binding = -1;
+        keys[actions->currentIndex()] = 0;
+        save();
+        rebuildBindings();
+    });
+    connect(mouse, &QComboBox::currentIndexChanged, dialog, [this, actions](int index) {
+        binding = -1;
+        mouseButtons[actions->currentIndex()] = index;
+        save();
+        rebuildBindings();
+    });
+    connect(tabs, &QTabWidget::currentChanged, dialog, [this, editor, hint](int index) {
+        release();
+        binding = -1;
+        editor->setVisible(index < 2);
+        if (index < 2)
+            hint->setText("Select a control, then click its keyboard or mouse binding.");
+        else if (index == 2)
+            hint->setText("Mouse tuning applies to the active input profile.");
+        else
+            hint->setText("Hold a mapped input to see its state. Esc releases capture.");
+        rebuildBindings();
+    });
+    actions->setCurrentIndex(initialAction);
+    rebuildBindings();
+    tabs->setCurrentIndex(initialPage);
+    auto recreate = [this, tabs, actions] {
+        const int page = tabs->currentIndex(), action = actions->currentIndex();
+        release();
+        binding = -1;
+        rebuildBindings = {};
+        auto old = dialog;
+        dialog = nullptr;
+        preview = nullptr;
+        status = nullptr;
+        old->hide();
+        old->deleteLater();
+        buildControls(page, action);
+    };
     connect(precise,&QPushButton::clicked,this,[this,recreate]{release();auto &c=engine.config;c.rollingWindow=true;c.smoothingMs=8;c.recenterMs=0;c.exponent=1;c.deadzone=0;c.antiDeadzone=0;save();recreate();});
     connect(smooth,&QPushButton::clicked,this,[this,recreate]{release();engine.config.rollingWindow=false;engine.config.smoothingMs=16;engine.config.recenterMs=35;save();recreate();});
     connect(profiles,&QComboBox::currentTextChanged,this,[this,recreate](const QString &name){auto s=controlsSettings();s.setValue("active",name);load();recreate();});
@@ -262,7 +429,7 @@ void KbmInput::showControls() {
         if(!ok || name.isEmpty()) return; for(auto ch:name) if(!ch.isLetterOrNumber() && ch!=' ' && ch!='-' && ch!='_') return;
         profile=name.left(64);save();recreate();});
     connect(reset,&QPushButton::clicked,this,[this,recreate]{defaults();save();recreate();});
-    connect(dialog,&QDialog::finished,this,[this]{release();binding=-1;if(local_test_mode)qApp->quit();});
+    connect(dialog,&QDialog::finished,this,[this]{release();binding=-1;if(rebuildBindings)rebuildBindings();if(local_test_mode)qApp->quit();});
     dialog->show(); dialog->raise(); dialog->activateWindow();
 }
 int KbmInput::runLocalTest() { local_test_mode=true; qApp->setQuitOnLastWindowClosed(false); showControls(); return qApp->exec(); }
